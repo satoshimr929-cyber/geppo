@@ -8,6 +8,40 @@
 <style>
   :root{--bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3352;--accent:#4f7cff;--accent2:#00d4aa;--warn:#ff6b6b;--text:#e8eaf6;--text-muted:#7b82b0;}
   body.light{--bg:#f0f2f7;--surface:#ffffff;--surface2:#e8ecf5;--border:#c8d0e8;--accent:#3b6aff;--accent2:#00b899;--warn:#e84040;--text:#1a1d2e;--text-muted:#6b72a0;}
+  body.sepia{--bg:#f3ead8;--surface:#fbf5e9;--surface2:#ece0c8;--border:#d8c5a0;--accent:#9c6b3f;--accent2:#7a8b4a;--warn:#c0492b;--text:#4a3826;--text-muted:#8a7355;}
+  body.navy{--bg:#dbeaff;--surface:#ffffff;--surface2:#c4dcff;--border:#7eb0f0;--accent:#1565d8;--accent2:#0091b0;--warn:#d63b4b;--text:#0d2a55;--text-muted:#4a6fa5;}
+  body.cyber{--bg:#06060f;--surface:#0e0e24;--surface2:#16163a;--border:#00f0ff;--accent:#00f0ff;--accent2:#ff2bd6;--warn:#ff3b7b;--text:#e0fbff;--text-muted:#5fb8d4;}
+  /* サイバーテーマのネオングロー（強化版） */
+  body.cyber{background:
+    repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,240,255,.03) 3px,transparent 4px),
+    radial-gradient(circle at 20% 0%,rgba(255,43,214,.12),transparent 45%),
+    radial-gradient(circle at 80% 100%,rgba(0,240,255,.12),transparent 45%),
+    var(--bg) !important;}
+  body.cyber .header h1{filter:drop-shadow(0 0 10px rgba(0,240,255,.9)) drop-shadow(0 0 22px rgba(255,43,214,.7));letter-spacing:.18em;}
+  body.cyber .section-title{text-shadow:0 0 10px rgba(0,240,255,.8);border-left-color:var(--accent2);box-shadow:-3px 0 8px rgba(255,43,214,.5);}
+  body.cyber .summary-box,body.cyber .day-row,body.cyber #statusBar,body.cyber #themeToggle{box-shadow:0 0 14px rgba(0,240,255,.4),inset 0 0 18px rgba(0,240,255,.08);}
+  body.cyber .summary-item{box-shadow:0 0 8px rgba(255,43,214,.35),inset 0 0 6px rgba(255,43,214,.1);border:1px solid rgba(255,43,214,.4);}
+  body.cyber .summary-item .val{text-shadow:0 0 10px currentColor,0 0 20px currentColor;}
+  body.cyber .btn-primary{box-shadow:0 0 18px rgba(0,240,255,.9),0 0 36px rgba(255,43,214,.6);text-shadow:0 0 8px rgba(255,255,255,.8);}
+  body.cyber .btn-secondary{box-shadow:0 0 10px rgba(0,240,255,.35),inset 0 0 8px rgba(0,240,255,.06);text-shadow:0 0 6px rgba(0,240,255,.5);}
+  body.cyber .btn-secondary:hover{box-shadow:0 0 20px rgba(0,240,255,.8),inset 0 0 12px rgba(0,240,255,.15);}
+  body.cyber .field input,body.cyber .field select{box-shadow:inset 0 0 10px rgba(0,240,255,.15);text-shadow:0 0 4px rgba(0,240,255,.3);}
+  body.cyber .field input:focus,body.cyber .field select:focus{box-shadow:0 0 16px rgba(0,240,255,.8),inset 0 0 10px rgba(0,240,255,.2);}
+  body.cyber .field label{text-shadow:0 0 6px rgba(255,43,214,.6);}
+  body.cyber .day-row:hover{box-shadow:0 0 20px rgba(0,240,255,.8);}
+  body.cyber .day-youbi,body.cyber .day-num{text-shadow:0 0 6px currentColor;}
+  body.cyber .day-badge{box-shadow:0 0 8px rgba(0,240,255,.4);text-shadow:0 0 5px currentColor;}
+  body.cyber .toast{box-shadow:0 0 20px var(--accent2),0 0 40px rgba(255,43,214,.6);}
+  body.cyber .theme-menu{box-shadow:0 0 20px rgba(0,240,255,.6);}
+  body.cyber .quick-btn{text-shadow:0 0 5px rgba(0,240,255,.4);}
+  body.cyber .btn-accent{color:#06060f !important;font-weight:800;box-shadow:0 0 14px rgba(0,240,255,.8);text-shadow:none;}
+  /* テーマ選択メニュー */
+  .theme-menu{position:absolute;top:54px;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:6px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:160px;display:none;}
+  .theme-menu.open{display:block;}
+  .theme-opt{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:7px;cursor:pointer;font-size:14px;color:var(--text);white-space:nowrap;}
+  .theme-opt:hover{background:var(--surface2);}
+  .theme-opt .chk{margin-left:auto;color:var(--accent2);font-weight:700;opacity:0;}
+  .theme-opt.active .chk{opacity:1;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px 60px;}
   .header{text-align:center;margin-bottom:32px;}
@@ -31,7 +65,7 @@
   .day-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
   .badge-work{background:#4f7cff22;color:var(--accent);}
   .badge-off{background:#ffffff10;color:var(--text-muted);}
-  body.light .badge-off{background:#00000010;}
+  body.light .badge-off,body.sepia .badge-off,body.navy .badge-off{background:#00000010;}
   .badge-holiday{background:#ff6b6b22;color:var(--warn);}
   .badge-paid{background:#00d4aa22;color:var(--accent2);}
   .badge-daikyu{background:#ffaa0022;color:#ffaa00;}
@@ -50,7 +84,7 @@
   .qb-work.on{border-color:var(--accent);background:#4f7cff22;color:var(--accent);}
   .qb-holi-work.on{border-color:#ff9f43;background:#ff9f4322;color:#ff9f43;}
   .qb-off.on{border-color:#888;background:#ffffff10;color:#aaa;}
-  body.light .qb-off.on{background:#00000010;color:#777;}
+  body.light .qb-off.on,body.sepia .qb-off.on,body.navy .qb-off.on{background:#00000010;color:#777;}
   .qb-paid.on{border-color:var(--accent2);background:#00d4aa22;color:var(--accent2);}
   .qb-daikyu.on{border-color:#ffaa00;background:#ffaa0022;color:#ffaa00;}
   .qb-holiday.on{border-color:var(--warn);background:#ff6b6b22;color:var(--warn);}
@@ -96,8 +130,17 @@
     <div id="dots" style="display:flex;"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
     <span id="statusMsg" style="flex:1;">Pythonエンジンを準備中... （初回のみ時間がかかります）</span>
   </div>
-  <button id="themeToggle" onclick="toggleTheme()" title="テーマ切替"
-    style="flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:10px;width:48px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0;">🌙</button>
+  <div style="flex-shrink:0;position:relative;">
+    <button id="themeToggle" onclick="toggleThemeMenu(event)" title="テーマ選択"
+      style="height:100%;background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:10px;width:48px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0;">🌙</button>
+    <div id="themeMenu" class="theme-menu">
+      <div class="theme-opt" data-theme="dark"  onclick="setTheme('dark')"><span>🌙</span><span>ダーク</span><span class="chk">✓</span></div>
+      <div class="theme-opt" data-theme="light" onclick="setTheme('light')"><span>☀️</span><span>ライト</span><span class="chk">✓</span></div>
+      <div class="theme-opt" data-theme="cyber" onclick="setTheme('cyber')"><span>🌃</span><span>サイバー</span><span class="chk">✓</span></div>
+      <div class="theme-opt" data-theme="sepia" onclick="setTheme('sepia')"><span>🌅</span><span>セピア</span><span class="chk">✓</span></div>
+      <div class="theme-opt" data-theme="navy"  onclick="setTheme('navy')"><span>🌊</span><span>ネイビー</span><span class="chk">✓</span></div>
+    </div>
+  </div>
 </div>
 
 <div class="meta-section">
@@ -117,7 +160,7 @@
     <input type="text" id="siteInput" placeholder="現場名を入力してEnterまたは追加"
       style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;"
       onkeydown="if(event.key==='Enter'){event.preventDefault();addSite();}">
-    <button onclick="addSite()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">追加</button>
+    <button class="btn-accent" onclick="addSite()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">追加</button>
   </div>
 </div>
 
@@ -170,7 +213,7 @@
     <input type="text" id="workerInput" placeholder="作業者名を入力してEnterまたは追加"
       style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;"
       onkeydown="if(event.key==='Enter'){event.preventDefault();addWorker();}">
-    <button onclick="addWorker()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">追加</button>
+    <button class="btn-accent" onclick="addWorker()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">追加</button>
   </div>
 </div>
 
@@ -184,7 +227,7 @@
         style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;">
         <option value="">-- 現場を選択 --</option>
       </select>
-      <button onclick="addKanriSite()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">＋ 追加</button>
+      <button class="btn-accent" onclick="addKanriSite()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">＋ 追加</button>
     </div>
   </div>
 </div>
@@ -795,7 +838,7 @@ function renderKanriSites(){
         <div>
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">一括選択（全日に適用）</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${bulkChips}</div>
-          <button onclick="applyKanriBulk(${si})" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">一括適用</button>
+          <button class="btn-accent" onclick="applyKanriBulk(${si})" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">一括適用</button>
         </div>`;
 
       // 日別リスト（rows由来＋追加日を日付順マージ）
@@ -1235,16 +1278,35 @@ const savedToken = localStorage.getItem('gist_token');
 if (savedToken) document.getElementById('githubToken').value = savedToken;
 
 // テーマ復元・切替
+const THEME_ICON={dark:'🌙',light:'☀️',cyber:'🌃',sepia:'🌅',navy:'🌊'};
+const THEME_LIST=['dark','light','cyber','sepia','navy'];
 function applyTheme(t){
+  if(!THEME_LIST.includes(t))t='dark';
+  document.body.classList.remove('light','cyber','sepia','navy');
+  if(t!=='dark')document.body.classList.add(t);
   const btn=document.getElementById('themeToggle');
-  if(t==='light'){document.body.classList.add('light');if(btn)btn.textContent='☀️';}
-  else{document.body.classList.remove('light');if(btn)btn.textContent='🌙';}
+  if(btn)btn.textContent=THEME_ICON[t];
+  document.querySelectorAll('.theme-opt').forEach(o=>{
+    o.classList.toggle('active',o.dataset.theme===t);
+  });
 }
-function toggleTheme(){
-  const next=document.body.classList.contains('light')?'dark':'light';
-  localStorage.setItem('sakugyo_theme',next);
-  applyTheme(next);
+function setTheme(t){
+  localStorage.setItem('sakugyo_theme',t);
+  applyTheme(t);
+  document.getElementById('themeMenu').classList.remove('open');
 }
+function toggleThemeMenu(e){
+  e.stopPropagation();
+  document.getElementById('themeMenu').classList.toggle('open');
+}
+// メニュー外タップで閉じる
+document.addEventListener('click',function(e){
+  const menu=document.getElementById('themeMenu');
+  const btn=document.getElementById('themeToggle');
+  if(menu&&menu.classList.contains('open')&&!menu.contains(e.target)&&e.target!==btn){
+    menu.classList.remove('open');
+  }
+});
 applyTheme(localStorage.getItem('sakugyo_theme')||'dark');
 
 buildMonthSelect();
