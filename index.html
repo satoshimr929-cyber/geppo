@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3352;--accent:#4f7cff;--accent2:#00d4aa;--warn:#ff6b6b;--text:#e8eaf6;--text-muted:#7b82b0;}
+  body.light{--bg:#f0f2f7;--surface:#ffffff;--surface2:#e8ecf5;--border:#c8d0e8;--accent:#3b6aff;--accent2:#00b899;--warn:#e84040;--text:#1a1d2e;--text-muted:#6b72a0;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px 60px;}
   .header{text-align:center;margin-bottom:32px;}
@@ -30,6 +31,7 @@
   .day-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
   .badge-work{background:#4f7cff22;color:var(--accent);}
   .badge-off{background:#ffffff10;color:var(--text-muted);}
+  body.light .badge-off{background:#00000010;}
   .badge-holiday{background:#ff6b6b22;color:var(--warn);}
   .badge-paid{background:#00d4aa22;color:var(--accent2);}
   .badge-daikyu{background:#ffaa0022;color:#ffaa00;}
@@ -48,6 +50,7 @@
   .qb-work.on{border-color:var(--accent);background:#4f7cff22;color:var(--accent);}
   .qb-holi-work.on{border-color:#ff9f43;background:#ff9f4322;color:#ff9f43;}
   .qb-off.on{border-color:#888;background:#ffffff10;color:#aaa;}
+  body.light .qb-off.on{background:#00000010;color:#777;}
   .qb-paid.on{border-color:var(--accent2);background:#00d4aa22;color:var(--accent2);}
   .qb-daikyu.on{border-color:#ffaa00;background:#ffaa0022;color:#ffaa00;}
   .qb-holiday.on{border-color:var(--warn);background:#ff6b6b22;color:var(--warn);}
@@ -88,9 +91,13 @@
   <p id="saveIndicator" style="font-size:12px;color:var(--accent2);opacity:0;transition:opacity .5s;height:18px;">✅ 自動保存しました</p>
 </div>
 
-<div style="max-width:700px;margin:0 auto 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:10px;" id="statusBar">
-  <div id="dots" style="display:flex;"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-  <span id="statusMsg">Pythonエンジンを準備中... （初回のみ時間がかかります）</span>
+<div style="max-width:700px;margin:0 auto 20px;display:flex;align-items:stretch;gap:10px;">
+  <div style="flex:1;min-width:0;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:10px;" id="statusBar">
+    <div id="dots" style="display:flex;"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    <span id="statusMsg" style="flex:1;">Pythonエンジンを準備中... （初回のみ時間がかかります）</span>
+  </div>
+  <button id="themeToggle" onclick="toggleTheme()" title="テーマ切替"
+    style="flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:10px;width:48px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0;">🌙</button>
 </div>
 
 <div class="meta-section">
@@ -237,9 +244,9 @@
     <button class="btn btn-secondary" onclick="exportJSON()" style="font-size:13px;padding:10px 8px;">💾 バックアップ</button>
     <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()" style="font-size:13px;padding:10px 8px;">📂 読み込み</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
-    <button class="btn btn-secondary" onclick="gistSave()" style="font-size:13px;padding:10px 8px;">☁️ クラウド保存</button>
+    <button class="btn btn-secondary" onclick="gistLoadConfirm()" style="font-size:13px;padding:10px 8px;">🔄 クラウド読込</button>
   </div>
-  <button class="btn btn-secondary" onclick="gistLoad()" style="font-size:13px;padding:10px 8px;width:100%;">🔄 クラウド読込</button>
+  <button class="btn btn-secondary" onclick="gistSaveConfirm()" style="font-size:13px;padding:10px 8px;width:100%;">☁️ クラウド保存</button>
 
   <!-- 区切り線 -->
   <div style="border-top:1.5px solid var(--border);margin:2px 0;"></div>
@@ -1083,6 +1090,17 @@ function getToken() {
          localStorage.getItem('gist_token') || '';
 }
 
+async function gistSaveConfirm() {
+  if (confirm('☁️ クラウドに保存しますか？\n\nクラウド上の既存データは現在の入力内容で上書きされます。')) {
+    await gistSave();
+  }
+}
+async function gistLoadConfirm() {
+  if (confirm('🔄 クラウドから読み込みますか？\n\n現在の入力内容はクラウドのデータで上書きされます。')) {
+    await gistLoad();
+  }
+}
+
 async function gistSave(silent=false) {
   const token = getToken();
   if (!token) { if(!silent) showToast('❌ GitHubトークンを入力してください'); return; }
@@ -1215,6 +1233,19 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 // トークンをlocalStorageから復元
 const savedToken = localStorage.getItem('gist_token');
 if (savedToken) document.getElementById('githubToken').value = savedToken;
+
+// テーマ復元・切替
+function applyTheme(t){
+  const btn=document.getElementById('themeToggle');
+  if(t==='light'){document.body.classList.add('light');if(btn)btn.textContent='☀️';}
+  else{document.body.classList.remove('light');if(btn)btn.textContent='🌙';}
+}
+function toggleTheme(){
+  const next=document.body.classList.contains('light')?'dark':'light';
+  localStorage.setItem('sakugyo_theme',next);
+  applyTheme(next);
+}
+applyTheme(localStorage.getItem('sakugyo_theme')||'dark');
 
 buildMonthSelect();
 loadGlobal();
