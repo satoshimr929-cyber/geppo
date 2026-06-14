@@ -156,11 +156,11 @@
 <div class="section-title">現場名リスト</div>
 <div style="max-width:700px;margin:0 auto 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;">
   <div id="siteTagList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;min-height:28px;"></div>
-  <div style="display:flex;gap:8px;">
+  <div style="display:flex;gap:8px;width:100%;box-sizing:border-box;">
     <input type="text" id="siteInput" placeholder="現場名を入力してEnterまたは追加"
-      style="flex:1;min-width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;"
+      style="flex:1 1 0;min-width:0;width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;"
       onkeydown="if(event.key==='Enter'){event.preventDefault();addSite();}">
-    <button class="btn-accent" onclick="addSite()" style="flex-shrink:0;white-space:nowrap;padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">追加</button>
+    <button class="btn-accent" onclick="addSite()" style="flex:0 0 64px;width:64px;white-space:nowrap;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;">追加</button>
   </div>
 </div>
 
@@ -209,11 +209,11 @@
 </div>
 <div style="max-width:700px;margin:0 auto 20px;background:var(--surface);border:1.5px solid var(--accent);border-radius:12px;padding:14px 16px;">
   <div id="workerTagList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;min-height:28px;"></div>
-  <div style="display:flex;gap:8px;">
+  <div style="display:flex;gap:8px;width:100%;box-sizing:border-box;">
     <input type="text" id="workerInput" placeholder="作業者名を入力してEnterまたは追加"
-      style="flex:1;min-width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;"
+      style="flex:1 1 0;min-width:0;width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;"
       onkeydown="if(event.key==='Enter'){event.preventDefault();addWorker();}">
-    <button class="btn-accent" onclick="addWorker()" style="flex-shrink:0;white-space:nowrap;padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">追加</button>
+    <button class="btn-accent" onclick="addWorker()" style="flex:0 0 64px;width:64px;white-space:nowrap;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;">追加</button>
   </div>
 </div>
 
@@ -222,12 +222,12 @@
   <div class="field" style="margin-bottom:12px;">
     <label>管理現場</label>
     <div id="kanriSiteList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;width:100%;box-sizing:border-box;">
       <select id="kanriAddSiteSelect"
-        style="flex:1;min-width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;">
+        style="flex:1 1 0;min-width:0;width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;">
         <option value="">-- 現場を選択 --</option>
       </select>
-      <button class="btn-accent" onclick="addKanriSite()" style="flex-shrink:0;padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">＋ 追加</button>
+      <button class="btn-accent" onclick="addKanriSite()" style="flex:0 0 72px;width:72px;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;box-sizing:border-box;">＋ 追加</button>
     </div>
   </div>
 </div>
@@ -372,10 +372,19 @@ function addSite() {
 }
 function removeSite(name) { siteList = siteList.filter(s=>s!==name); renderSiteTags(); updateDatalist(); saveData(); }
 function renderSiteTags() {
-  document.getElementById('siteTagList').innerHTML = siteList.map(s =>
-    `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:13px;">
-      ${s}<button onclick="removeSite(${JSON.stringify(s)})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0;">×</button>
-    </span>`).join('');
+  const cont = document.getElementById('siteTagList');
+  cont.innerHTML = '';
+  siteList.forEach(s => {
+    const span = document.createElement('span');
+    span.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:13px;';
+    span.appendChild(document.createTextNode(s));
+    const btn = document.createElement('button');
+    btn.textContent = '×';
+    btn.style.cssText = 'background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0;';
+    btn.addEventListener('click', () => removeSite(s));
+    span.appendChild(btn);
+    cont.appendChild(span);
+  });
   updateKanriSiteSelect();
 }
 function updateDatalist() {
@@ -384,6 +393,15 @@ function updateDatalist() {
   document.querySelectorAll('[id^="sel-"]').forEach(sel => {
     const i = sel.id.replace('sel-','');
     const cur = rows[i]?.site || '';
+    const opts = siteList.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
+    sel.innerHTML = `<option value="">-- 現場を選択 --</option>${opts}<option value="__manual__">✏️ 直接入力...</option>`;
+    if (cur && !siteList.includes(cur)) sel.value = '';
+  });
+  // 担当現場のselectも更新
+  document.querySelectorAll('#tantoSiteList select.tanto-input').forEach(sel => {
+    const cur = sel.value;
+    const isManual = cur === '__manual__' || (sel.nextElementSibling && sel.nextElementSibling.style.display !== 'none');
+    if (isManual) return; // 直接入力モードのものは触らない
     const opts = siteList.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
     sel.innerHTML = `<option value="">-- 現場を選択 --</option>${opts}<option value="__manual__">✏️ 直接入力...</option>`;
     if (cur && !siteList.includes(cur)) sel.value = '';
