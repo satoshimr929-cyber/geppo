@@ -85,7 +85,9 @@
   .days-container{max-width:700px;margin:0 auto 16px;display:flex;flex-direction:column;gap:6px;}
   .day-row{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s;}
   .day-row:hover{border-color:var(--accent);}
+  .day-row.unset{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn);}
   .day-row.rest{background:rgba(255,255,255,0.13);}
+  .day-row.unset{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn);}
   body.light .day-row.rest,body.sepia .day-row.rest,body.navy .day-row.rest{background:rgba(0,0,0,0.04);}
   .day-header{display:flex;align-items:center;padding:10px 14px;cursor:pointer;gap:10px;user-select:none;}
   .day-num{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--text-muted);min-width:32px;}
@@ -118,6 +120,10 @@
   .qb-off.on{border-color:#888;background:#ffffff10;color:#aaa;}
   body.light .qb-off.on,body.sepia .qb-off.on,body.navy .qb-off.on{background:#00000010;color:#777;}
   .qb-paid.on{border-color:var(--accent2);background:#00d4aa22;color:var(--accent2);}
+  #workSatPanel summary::-webkit-details-marker{display:none;}
+  .worksat-chip{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1.5px solid var(--border);border-radius:16px;padding:4px 6px 4px 11px;font-size:13px;color:var(--text);}
+  .worksat-chip button{border:none;background:transparent;color:var(--text-muted);font-size:16px;line-height:1;cursor:pointer;padding:0 3px;}
+  .worksat-chip button:hover{color:var(--warn);}
   .qb-daikyu.on{border-color:#ffaa00;background:#ffaa0022;color:#ffaa00;}
 
   .summary-box{max-width:700px;margin:0 auto 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;}
@@ -208,7 +214,31 @@
     style="width:100%;margin-top:12px;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box;">📍 現在地から今日の現場を取得</button>
 </div>
 
-<div class="section-title">日別入力（クリックで展開）</div>
+<details id="workSatPanel" style="margin:14px 0 0;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;">
+  <summary style="list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;user-select:none;">
+    🗓 土曜出勤の事前登録
+    <span style="font-size:11px;font-weight:500;color:var(--text-muted);">（指定した土曜を出勤に）</span>
+  </summary>
+  <div style="padding:0 14px 14px;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="date" id="workSatInput"
+        style="flex:1 1 0;min-width:0;width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;">
+      <button onclick="addWorkSaturday()"
+        style="flex:0 0 64px;width:64px;white-space:nowrap;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;">追加</button>
+    </div>
+    <div id="workSatList" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;"></div>
+  </div>
+</details>
+
+<div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+  <span>日別入力（クリックで展開）</span>
+  <label style="display:flex;align-items:center;gap:7px;cursor:pointer;text-transform:none;letter-spacing:normal;font-weight:500;">
+    <span style="font-size:12px;color:var(--text-muted);">未入力強調</span>
+    <span id="unsetToggleTrack" onclick="toggleUnsetHighlight()" style="position:relative;display:inline-block;width:42px;height:24px;background:var(--surface2);border:1.5px solid var(--border);border-radius:20px;transition:all .2s;flex-shrink:0;">
+      <span id="unsetToggleKnob" style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--text-muted);transition:all .2s;"></span>
+    </span>
+  </label>
+</div>
 <div class="days-container" id="daysContainer"></div>
 
 <div class="section-title">集計</div>
@@ -483,6 +513,7 @@ const GLOBAL_KEY    = 'sakugyo_global_v6';
 const monthKey = ym => `sakugyo_month_${ym}`;
 
 let rows = [], siteList = [], pyodide = null;
+let workSaturdays = []; // 事前登録した土曜出勤日（ISO 'YYYY-MM-DD'）
 
 // ── Pyodide ──
 function setStatus(msg, ready) {
@@ -527,6 +558,32 @@ await micropip.install('openpyxl')
 }
 
 // ── 現場名 ──
+// ── 未入力強調ハイライト ──
+let unsetHighlight = localStorage.getItem('highlight_unset') === 'true'; // デフォルトOFF
+function applyUnsetToggleUI() {
+  const track = document.getElementById('unsetToggleTrack');
+  const knob = document.getElementById('unsetToggleKnob');
+  if (track && knob) {
+    if (unsetHighlight) {
+      track.style.background = 'var(--warn)';
+      track.style.borderColor = 'var(--warn)';
+      knob.style.left = '22px';
+      knob.style.background = '#fff';
+    } else {
+      track.style.background = 'var(--surface2)';
+      track.style.borderColor = 'var(--border)';
+      knob.style.left = '2px';
+      knob.style.background = 'var(--text-muted)';
+    }
+  }
+}
+function toggleUnsetHighlight() {
+  unsetHighlight = !unsetHighlight;
+  localStorage.setItem('highlight_unset', unsetHighlight ? 'true' : 'false');
+  applyUnsetToggleUI();
+  renderDays();
+  showToast(unsetHighlight ? '未入力強調 ON' : '未入力強調 OFF');
+}
 // ── GPS位置情報 ──
 // GPS機能のON/OFF状態
 let gpsEnabled = localStorage.getItem('gps_enabled') !== 'false'; // デフォルトON
@@ -688,7 +745,8 @@ async function detectTodaySite() {
       const _d = new Date(rows[todayIdx].date);
       const _dow = _d.getDay(); // 0=日, 6=土
       const _isHoliday = !!rows[todayIdx].holidayName;
-      const _newType = (_dow===0 || _dow===6 || _isHoliday) ? 'holi-work' : 'work';
+      const _isWorkSat = (_dow===6) && workSaturdays.includes(dateToISO(_d)); // 事前登録した出勤土曜
+      const _newType = _isWorkSat ? 'work' : ((_dow===0 || _dow===6 || _isHoliday) ? 'holi-work' : 'work');
       setType(todayIdx, _newType);
     }
     const hits = geoSites
@@ -867,6 +925,44 @@ function buildMonthSelect() {
 }
 
 // ── フォーム ──
+// ── 土曜出勤の事前登録 ──
+function renderWorkSatList(){
+  const el=document.getElementById('workSatList'); if(!el) return;
+  if(!workSaturdays.length){ el.innerHTML='<span style="font-size:12px;color:var(--text-muted);">登録なし</span>'; return; }
+  el.innerHTML=workSaturdays.slice().sort().map(iso=>{
+    const d=new Date(iso+'T00:00:00');
+    const label=`${d.getMonth()+1}/${d.getDate()}(${YOUBI[d.getDay()]})`;
+    return `<span class="worksat-chip">${label}<button onclick="removeWorkSaturday('${iso}')" aria-label="解除">×</button></span>`;
+  }).join('');
+}
+// 表示中の月に該当する場合のみ即反映（入力済みの行は上書きしない）
+function reflectWorkSat(iso, added){
+  const idx=rows.findIndex(r=>dateToISO(r.date)===iso);
+  if(idx<0){ return; }
+  const r=rows[idx];
+  if(added){
+    if(r.type==='off' && !r.site && !r.task){ setType(idx,'work'); return; }
+  }else{
+    if(r.type==='work' && !r.site && !r.task){ setType(idx,'off'); return; }
+  }
+  renderDays();
+}
+function addWorkSaturday(){
+  const inp=document.getElementById('workSatInput'); const v=inp.value;
+  if(!v){ showToast('⚠️ 日付を選んでください'); return; }
+  const d=new Date(v+'T00:00:00');
+  if(d.getDay()!==6){ showToast('⚠️ 土曜日の日付を選んでください'); return; }
+  if(workSaturdays.includes(v)){ showToast('登録済みです'); inp.value=''; return; }
+  workSaturdays.push(v); workSaturdays.sort();
+  saveData(); renderWorkSatList(); reflectWorkSat(v,true);
+  inp.value='';
+  showToast(`🗓 ${d.getMonth()+1}/${d.getDate()}(土) を出勤に登録`);
+}
+function removeWorkSaturday(iso){
+  workSaturdays=workSaturdays.filter(x=>x!==iso);
+  saveData(); renderWorkSatList(); reflectWorkSat(iso,false);
+  showToast('登録を解除しました');
+}
 function buildDays() {
   const ym=document.getElementById('yearmonth').value; if(!ym) return;
   const [y,m]=ym.split('-').map(Number); rows=[];
@@ -876,12 +972,16 @@ function buildDays() {
     const _iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const _hname=HOLIDAYS[_iso]||null;
     const _isHoli=!!_hname;
+    const _isWorkSat=(dw===6)&&workSaturdays.includes(_iso); // 事前登録した出勤土曜
+    const _off=(isWE||_isHoli)&&!_isWorkSat;
     rows.push({date:new Date(d),youbi:YOUBI[dw],isWeekend:isWE,holidayName:_hname,
-      site:'',task:'',start:(isWE||_isHoli)?'':DEFAULT_START,end:(isWE||_isHoli)?'':DEFAULT_END,
-      hayade:'',zangyo:'',type:(isWE||_isHoli)?'off':'work'});
+      site:'',task:'',start:_off?'':DEFAULT_START,end:_off?'':DEFAULT_END,
+      hayade:'',zangyo:'',memo:'',type:_off?'off':'work'});
   }
   renderDays();
 }
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function autoGrowMemo(el){if(!el)return;el.style.height='auto';el.style.height=(el.scrollHeight)+'px';}
 function renderDays() {
   const cont=document.getElementById('daysContainer'); cont.innerHTML='';
   const TYPES=['work','holi-work','off','paid','daikyu','absent'];
@@ -891,12 +991,13 @@ function renderDays() {
     const badge=r.type!=='off'?`<span class="day-badge ${BADGE_CLS[r.type]}">${TYPE_LABEL[r.type]}</span>`:'';
     const _holiSuffix=r.holidayName?`　<span style="color:#c084fc;font-weight:700;">(${r.holidayName})</span>`:'';
     const summary=!isOff?(r.site?`${r.site}${r.task?'　'+r.task:''}`:'<span class="empty">未入力</span>'):TYPE_LABEL[r.type]+_holiSuffix;
-    const rowCls=['day-row',r.isWeekend&&d.getDay()===6?'sat':'',r.isWeekend&&d.getDay()===0?'sun':'',r.holidayName&&!r.isWeekend?'holiday':'',isOff?'rest':''].filter(Boolean).join(' ');
+    const _isUnset=unsetHighlight&&(r.type==='work'||r.type==='holi-work')&&(!r.site||!r.task);
+    const rowCls=['day-row',r.isWeekend&&d.getDay()===6?'sat':'',r.isWeekend&&d.getDay()===0?'sun':'',r.holidayName&&!r.isWeekend?'holiday':'',isOff?'rest':'',_isUnset?'unset':''].filter(Boolean).join(' ');
     const el=document.createElement('div'); el.className=rowCls; el.id=`row-${i}`;
     el.innerHTML=`
       <div class="day-header" onclick="toggleRow(${i})">
         <span class="day-num">${dateStr}</span><span class="day-youbi">${r.youbi}</span>
-        <span class="day-summary">${summary}</span><span id="exphdr-${i}" style="font-size:10px;color:var(--accent2);font-weight:700;margin-right:2px;"></span>${badge}<span class="chevron">▶</span>
+        <span class="day-summary">${summary}</span><span id="memohdr-${i}" style="font-size:11px;margin-right:3px;">${r.memo?'📝':''}</span><span id="exphdr-${i}" style="font-size:10px;color:var(--accent2);font-weight:700;margin-right:2px;"></span>${badge}<span class="chevron">▶</span>
       </div>
       <div class="day-body">
         <div class="quick-btns">
@@ -942,6 +1043,13 @@ function renderDays() {
                 onchange="updateRow(${i},'zangyo',this.value)"></div>
           </div>
         </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);">
+          <div class="field" style="margin-bottom:0;"><label>メモ</label>
+            <textarea placeholder="メモ（任意）" id="memo-${i}" rows="1"
+              oninput="updateRow(${i},'memo',this.value);autoGrowMemo(this)" onchange="updateRow(${i},'memo',this.value)"
+              style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 10px;outline:none;box-sizing:border-box;resize:none;overflow:hidden;">${esc(r.memo)}</textarea>
+          </div>
+        </div>
         <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);display:flex;align-items:center;gap:8px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);">
             <input type="checkbox" id="expchk-${i}" ${expenseHasForDate(r.date)?'checked':''}
@@ -961,20 +1069,22 @@ function renderDays() {
 function toggleRow(i){
   const t=document.getElementById(`row-${i}`), open=t.classList.contains('open');
   document.querySelectorAll('.day-row.open').forEach(el=>el.classList.remove('open'));
-  if(!open) t.classList.add('open');
+  if(!open){ t.classList.add('open'); autoGrowMemo(document.getElementById(`memo-${i}`)); }
 }
 function setType(i,type){
   rows[i].type=type;
   if(type!=='work'&&type!=='holi-work'){rows[i].site='';rows[i].task='';rows[i].start='';rows[i].end='';rows[i].hayade='';rows[i].zangyo='';}
   else{if(!rows[i].start)rows[i].start=DEFAULT_START;if(!rows[i].end)rows[i].end=DEFAULT_END;}
   const wasOpen=document.getElementById(`row-${i}`).classList.contains('open');
-  renderDays(); autoFillKanriWorkers(); saveData(); if(wasOpen) document.getElementById(`row-${i}`).classList.add('open');
+  renderDays(); autoFillKanriWorkers(); saveData(); if(wasOpen){ document.getElementById(`row-${i}`).classList.add('open'); autoGrowMemo(document.getElementById(`memo-${i}`)); }
 }
 function updateRow(i,key,val){
   rows[i][key]=val; updateSummary(); saveData();
   const r=rows[i], el=document.querySelector(`#row-${i} .day-summary`);
   if(el) el.innerHTML=(r.type==='work'||r.type==='holi-work')?(r.site?`${r.site}${r.task?'　'+r.task:''}`:'<span class="empty">未入力</span>'):TYPE_LABEL[r.type];
+  if(key==='site'||key==='task'){const rowEl=document.getElementById(`row-${i}`);if(rowEl){const u=unsetHighlight&&(r.type==='work'||r.type==='holi-work')&&(!r.site||!r.task);rowEl.classList.toggle('unset',u);}}
   if(key==='site'){try{autoFillKanriWorkers();renderKanriSites();}catch(e){}}
+  if(key==='memo'){const mh=document.getElementById(`memohdr-${i}`);if(mh)mh.textContent=r.memo?'📝':'';}
 }
 function updateSummary(){
   const w=rows.filter(r=>r.type==='work').length, h=rows.filter(r=>r.type==='holi-work').length;
@@ -1687,14 +1797,16 @@ function renderKanriSites(){
 
 function clearAll(){
   if(!confirm('この月の入力内容をリセットしますか？'))return;
-  rows.forEach(r=>{r.site='';r.task='';r.start='';r.end='';r.hayade='';r.zangyo='';r.type=(r.isWeekend||r.holidayName)?'off':'work';});
+  rows.forEach(r=>{r.site='';r.task='';r.start='';r.end='';r.hayade='';r.zangyo='';r.memo='';
+    const _isWorkSat=(r.date.getDay()===6)&&workSaturdays.includes(dateToISO(r.date));
+    r.type=((r.isWeekend||r.holidayName)&&!_isWorkSat)?'off':'work';});
   renderDays(); saveData();
 }
 
 // ── 保存 ──
 let _gistSaveTimer = null;
 function saveData(){
-  try{localStorage.setItem(GLOBAL_KEY,JSON.stringify({name:document.getElementById('name').value,siteList,workerList,yearmonth:document.getElementById('yearmonth').value,expenseCompany:(document.getElementById('expenseCompany')||{}).value||''}));}catch(e){}
+  try{localStorage.setItem(GLOBAL_KEY,JSON.stringify({name:document.getElementById('name').value,siteList,workerList,yearmonth:document.getElementById('yearmonth').value,expenseCompany:(document.getElementById('expenseCompany')||{}).value||'',workSaturdays}));}catch(e){}
   const ym=document.getElementById('yearmonth').value; if(!ym)return;
   const defS=DEFAULT_START,defE=DEFAULT_END;
   try{localStorage.setItem(monthKey(ym),JSON.stringify({
@@ -1709,12 +1821,14 @@ function saveData(){
     rows:rows.map(r=>({type:r.type,site:r.site,task:r.task,
       start:(r.type==='work'||r.type==='holi-work')?(r.start||defS):r.start,
       end:(r.type==='work'||r.type==='holi-work')?(r.end||defE):r.end,
-      hayade:r.hayade,zangyo:r.zangyo}))
+      hayade:r.hayade,zangyo:r.zangyo,memo:r.memo}))
   }));showSaveIndicator();}catch(e){}
 }
 function loadGlobal(){
   try{
     const s=JSON.parse(localStorage.getItem(GLOBAL_KEY)||'null'); if(!s)return;
+    workSaturdays=Array.isArray(s.workSaturdays)?s.workSaturdays.slice():[];
+    renderWorkSatList();
     if(s.name)document.getElementById('name').value=s.name;
     if(s.expenseCompany!==undefined){const ec=document.getElementById('expenseCompany');if(ec)ec.value=s.expenseCompany;}
     if(s.siteList){siteList=s.siteList.map(x=>typeof x==='string'?{name:x,client:''}:x);renderSiteTags();updateDatalist();}
@@ -2083,7 +2197,8 @@ loadGlobal();
 loadMonthData(document.getElementById('yearmonth').value);
 loadExpenses();
 applyGpsState();
-
+applyUnsetToggleUI();
+renderWorkSatList();
 // トークンがあれば起動時に自動クラウド読み込み
 if (savedToken) {
   setTimeout(async () => {
