@@ -85,18 +85,20 @@
   .days-container{max-width:700px;margin:0 auto 16px;display:flex;flex-direction:column;gap:6px;}
   .day-row{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s;}
   .day-row:hover{border-color:var(--accent);}
-  .day-row.rest{opacity:.6;}
+  .day-row.rest{background:rgba(255,255,255,0.13);}
+  body.light .day-row.rest,body.sepia .day-row.rest,body.navy .day-row.rest{background:rgba(0,0,0,0.04);}
   .day-header{display:flex;align-items:center;padding:10px 14px;cursor:pointer;gap:10px;user-select:none;}
   .day-num{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--text-muted);min-width:32px;}
   .day-youbi{font-size:12px;font-weight:700;min-width:18px;text-align:center;}
   .sat .day-youbi{color:#4f9fff;}.sun .day-youbi{color:var(--warn);}
+  .holiday .day-youbi{color:#c084fc;}.holiday .day-num{color:#c084fc;}
   .day-summary{flex:1;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .empty{color:var(--text-muted);font-style:italic;}
   .day-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
   .badge-work{background:#4f7cff22;color:var(--accent);}
   .badge-off{background:#ffffff10;color:var(--text-muted);}
   body.light .badge-off,body.sepia .badge-off,body.navy .badge-off{background:#00000010;}
-  .badge-holiday{background:#ff6b6b22;color:var(--warn);}
+
   .badge-paid{background:#00d4aa22;color:var(--accent2);}
   .badge-daikyu{background:#ffaa0022;color:#ffaa00;}
   .badge-holi-work{background:#ff9f4322;color:#ff9f43;}
@@ -117,7 +119,7 @@
   body.light .qb-off.on,body.sepia .qb-off.on,body.navy .qb-off.on{background:#00000010;color:#777;}
   .qb-paid.on{border-color:var(--accent2);background:#00d4aa22;color:var(--accent2);}
   .qb-daikyu.on{border-color:#ffaa00;background:#ffaa0022;color:#ffaa00;}
-  .qb-holiday.on{border-color:var(--warn);background:#ff6b6b22;color:var(--warn);}
+
   .summary-box{max-width:700px;margin:0 auto 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;}
   .summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px 4px;}
   .summary-item{text-align:center;padding:6px 2px;background:var(--surface2);border-radius:8px;}
@@ -185,7 +187,15 @@
   </div>
 </div>
 
-<div class="section-title">現場名リスト</div>
+<div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+  <span>現場名リスト</span>
+  <label style="display:flex;align-items:center;gap:7px;cursor:pointer;text-transform:none;letter-spacing:normal;font-weight:500;">
+    <span style="font-size:12px;color:var(--text-muted);">📍 GPS</span>
+    <span id="gpsToggleTrack" onclick="toggleGps()" style="position:relative;display:inline-block;width:42px;height:24px;background:var(--surface2);border:1.5px solid var(--border);border-radius:20px;transition:all .2s;flex-shrink:0;">
+      <span id="gpsToggleKnob" style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--text-muted);transition:all .2s;"></span>
+    </span>
+  </label>
+</div>
 <div style="max-width:700px;margin:0 auto 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;">
   <div id="siteTagList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;min-height:28px;"></div>
   <div style="display:flex;gap:8px;width:100%;box-sizing:border-box;">
@@ -194,6 +204,8 @@
       onkeydown="if(event.key==='Enter'){event.preventDefault();addSite();}">
     <button class="btn-accent" onclick="addSite()" style="flex:0 0 64px;width:64px;white-space:nowrap;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;">追加</button>
   </div>
+  <button onclick="detectTodaySite()" id="todayGeoBtn"
+    style="width:100%;margin-top:12px;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box;">📍 現在地から今日の現場を取得</button>
 </div>
 
 <div class="section-title">日別入力（クリックで展開）</div>
@@ -330,6 +342,18 @@
   <button class="btn btn-primary" id="expenseExcelBtn" onclick="exportExpenseExcel()" style="width:100%;padding:12px;font-size:14px;box-sizing:border-box;">📊 経費精算書を出力</button>
 </div>
 
+<!-- GPS現場候補モーダル -->
+<div id="geoCandOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);width:100%;max-width:700px;border-radius:16px 16px 0 0;padding:20px 18px 28px;max-height:70vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-size:16px;font-weight:700;color:var(--text);">📍 近くの現場を選択</span>
+      <button onclick="document.getElementById('geoCandOverlay').style.display='none';" style="background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;padding:0;line-height:1;">×</button>
+    </div>
+    <div id="geoCandList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+
 <!-- 経費編集モーダル -->
 <div id="expenseOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center;">
   <div style="background:var(--surface);width:100%;max-width:700px;border-radius:16px 16px 0 0;padding:20px 18px 28px;max-height:88vh;overflow-y:auto;">
@@ -422,10 +446,37 @@ const HOLI_TMPL_B64 = "UEsDBBQAAAAIADBeoVxGx01IlQAAAM0AAAAQAAAAZG9jUHJvcHMvYXBwL
 const PY_CODE_B64   = "CmltcG9ydCBvcGVucHl4bApmcm9tIG9wZW5weXhsLnN0eWxlcyBpbXBvcnQgUGF0dGVybkZpbGwsIEFsaWdubWVudApmcm9tIG9wZW5weXhsLndvcmtzaGVldC5wYWdlIGltcG9ydCBQYWdlTWFyZ2lucwppbXBvcnQgaW8sIGJhc2U2NCwganNvbiwgY29weQpmcm9tIGRhdGV0aW1lIGltcG9ydCBkYXRlLCB0aW1lZGVsdGEKCmRlZiBnZW5lcmF0ZV9leGNlbChkYXRhX2pzb24sIHRtcGxfYjY0KToKICAgIGRhdGEgPSBqc29uLmxvYWRzKGRhdGFfanNvbikKICAgIHdiID0gb3BlbnB5eGwubG9hZF93b3JrYm9vayhpby5CeXRlc0lPKGJhc2U2NC5iNjRkZWNvZGUodG1wbF9iNjQpKSkKICAgIHdzID0gd2Iud29ya3NoZWV0c1swXQoKICAgIG5hbWUgPSBkYXRhLmdldCgibmFtZSIsICIiKQogICAgeW0gICA9IGRhdGEuZ2V0KCJ5ZWFybW9udGgiLCAiMjAyNS0wNyIpCiAgICB5LCBtID0gbWFwKGludCwgeW0uc3BsaXQoIi0iKSkKICAgICMgMTbml6Xlp4vjgb7jgorjgarjga7jgafooajnpLrjga/nv4zmnIjvvIjkvovvvJo05pyIMTbml6XjgJwg4oaSIDXmnIjliIbvvIkKICAgIGRpc3BfbSA9IG0gKyAxIGlmIG0gPCAxMiBlbHNlIDEKICAgIGRpc3BfeSA9IHkgaWYgbSA8IDEyIGVsc2UgeSArIDEKICAgIHdzWyJGMiJdID0gZGlzcF9tCiAgICB3c1siSDIiXSA9IGRpc3BfeQogICAgd3NbIksyIl0gPSBkaXNwX20KICAgIHdzWyJXMiJdID0gIlx1NTQwZFx1NTI0ZFx1MzAwMCIgKyBuYW1lCgogICAgcm93c19kYXRhID0gZGF0YS5nZXQoInJvd3MiLCBbXSkKICAgIGNudF93b3JrICAgPSBzdW0oMSBmb3IgciBpbiByb3dzX2RhdGEgaWYgci5nZXQoInR5cGUiKSA9PSAid29yayIpCiAgICBjbnRfaG9saSAgID0gc3VtKDEgZm9yIHIgaW4gcm93c19kYXRhIGlmIHIuZ2V0KCJ0eXBlIikgPT0gImhvbGktd29yayIpCiAgICBjbnRfZGFpa3l1ID0gc3VtKDEgZm9yIHIgaW4gcm93c19kYXRhIGlmIHIuZ2V0KCJ0eXBlIikgPT0gImRhaWt5dSIpCiAgICBjbnRfcGFpZCAgID0gc3VtKDEgZm9yIHIgaW4gcm93c19kYXRhIGlmIHIuZ2V0KCJ0eXBlIikgPT0gInBhaWQiKQogICAgY250X2Fic2VudCA9IHN1bSgxIGZvciByIGluIHJvd3NfZGF0YSBpZiByLmdldCgidHlwZSIpID09ICJhYnNlbnQiKQogICAgd3NbIlo1Il0gID0gY250X3dvcmsgKyBjbnRfcGFpZCArIGNudF9kYWlreXUgKyBjbnRfYWJzZW50CiAgICB3c1siWjYiXSAgPSBjbnRfaG9saQogICAgd3NbIlo3Il0gID0gY250X2RhaWt5dQogICAgd3NbIlo4Il0gID0gY250X3BhaWQKICAgIHdzWyJaOSJdICA9IGNudF9hYnNlbnQKICAgIHdzWyJaMTMiXSA9IGludChkYXRhLmdldCgicHJldkRhaWt5dSIsIDApIG9yIDApCiAgICAjIOOCs+ODoeODs+ODiOODu+ebruaomQogICAgaG9ubmluICAgPSBkYXRhLmdldCgiaG9ubmluQ29tbWVudCIsICIiKQogICAgeW9ibyAgICAgPSBkYXRhLmdldCgieW9ib0ppa28iLCAiIikKICAgIGdfc2hpZ28gID0gZGF0YS5nZXQoImdvYWxTaGlnb3RvIiwgIiIpCiAgICBnX2ppbmthaSA9IGRhdGEuZ2V0KCJnb2FsSmlua2FrdSIsICIiKQogICAgZ19zb25vdGEgPSBkYXRhLmdldCgiZ29hbFNvbm90YSIsICIiKQogICAgZGVmIHdyYXBfdGV4dCh0ZXh0LCBtYXhfY2hhcnM9MjYpOgogICAgICAgICIiIuODhuOCreOCueODiOOCkuaMh+WumuaWh+Wtl+aVsOOBp+iHquWLleaKmOOCiui/lOOBl++8iOaXpeacrOiqnuiAg+aFru+8iSIiIgogICAgICAgIGlmIG5vdCB0ZXh0OiByZXR1cm4gW10KICAgICAgICBsaW5lcyA9IFtdCiAgICAgICAgZm9yIHBhcmFncmFwaCBpbiB0ZXh0LnJlcGxhY2UoIlxyXG4iLCJcbiIpLnJlcGxhY2UoIlxyIiwiXG4iKS5zcGxpdCgiXG4iKToKICAgICAgICAgICAgaWYgbm90IHBhcmFncmFwaDoKICAgICAgICAgICAgICAgIGxpbmVzLmFwcGVuZCgiIikKICAgICAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgICAgIGN1cnJlbnQgPSAiIgogICAgICAgICAgICBjdXJyZW50X2xlbiA9IDAKICAgICAgICAgICAgZm9yIGNoIGluIHBhcmFncmFwaDoKICAgICAgICAgICAgICAgIGNoYXJfbGVuID0gMiBpZiBvcmQoY2gpID4gMTI3IGVsc2UgMQogICAgICAgICAgICAgICAgaWYgY3VycmVudF9sZW4gKyBjaGFyX2xlbiA+IG1heF9jaGFyczoKICAgICAgICAgICAgICAgICAgICBsaW5lcy5hcHBlbmQoY3VycmVudCkKICAgICAgICAgICAgICAgICAgICBjdXJyZW50ID0gY2gKICAgICAgICAgICAgICAgICAgICBjdXJyZW50X2xlbiA9IGNoYXJfbGVuCiAgICAgICAgICAgICAgICBlbHNlOgogICAgICAgICAgICAgICAgICAgIGN1cnJlbnQgKz0gY2gKICAgICAgICAgICAgICAgICAgICBjdXJyZW50X2xlbiArPSBjaGFyX2xlbgogICAgICAgICAgICBpZiBjdXJyZW50OgogICAgICAgICAgICAgICAgbGluZXMuYXBwZW5kKGN1cnJlbnQpCiAgICAgICAgcmV0dXJuIGxpbmVzCgogICAgIyDmnKzkurrjgrPjg6Hjg7Pjg4jvvIhXMjPjgJxXMjcg5pyA5aSnNeihjO+8iQogICAgaWYgaG9ubmluOgogICAgICAgIGZvciBsaSwgbGluZSBpbiBlbnVtZXJhdGUod3JhcF90ZXh0KGhvbm5pbilbOjVdKToKICAgICAgICAgICAgdHJ5OiB3cy5jZWxsKHJvdz0yMytsaSwgY29sdW1uPTIzKS52YWx1ZSA9IGxpbmUKICAgICAgICAgICAgZXhjZXB0OiBwYXNzCiAgICAjIOimgeacm+S6i+mghe+8iFcyOeOAnFczMyDmnIDlpKc16KGM77yJCiAgICBpZiB5b2JvOgogICAgICAgIGZvciBsaSwgbGluZSBpbiBlbnVtZXJhdGUod3JhcF90ZXh0KHlvYm8pWzo1XSk6CiAgICAgICAgICAgIHRyeTogd3MuY2VsbChyb3c9MjkrbGksIGNvbHVtbj0yMykudmFsdWUgPSBsaW5lCiAgICAgICAgICAgIGV4Y2VwdDogcGFzcwogICAgaWYgZ19zaGlnbzogd3MuY2VsbChyb3c9MzksIGNvbHVtbj05KS52YWx1ZSAgPSAiXHU0ZWQ1XHU0ZThiXHVmZjFhIiArIGdfc2hpZ28gICAjIEkzOQogICAgaWYgZ19qaW5rYWk6d3MuY2VsbChyb3c9NDAsIGNvbHVtbj05KS52YWx1ZSAgPSAiXHU0ZWJhXHU2ODNjXHVmZjFhIiArIGdfamlua2FpICAjIEk0MAogICAgaWYgZ19zb25vdGE6d3MuY2VsbChyb3c9NDEsIGNvbHVtbj05KS52YWx1ZSAgPSAiXHUzMDVkXHUzMDZlXHU0ZWQ2XHVmZjFhIiArIGdfc29ub3RhICAjIEk0MQogICAgdGFudG9fc2l0ZXMgPSBkYXRhLmdldCgidGFudG9TaXRlcyIsIFtdKQogICAgIyDmi4XlvZPnj77loLTmm7jjgY3ovrzjgb/lhYg6IEIzOSxCNDAsQjQxLEI0MixCNDMsQjQ0LEI0NSxCNDbvvIjntZDlkIjjgZfjgarjgYTvvIkKICAgIHRhbnRvX2NlbGxzID0gWzM5LCA0MCwgNDEsIDQyLCA0MywgNDQsIDQ1LCA0Nl0KICAgIGZvciBpLCByb3dfbnVtIGluIGVudW1lcmF0ZSh0YW50b19jZWxscyk6CiAgICAgICAgdHJ5OgogICAgICAgICAgICBjZWxsID0gd3MuY2VsbChyb3c9cm93X251bSwgY29sdW1uPTIpCiAgICAgICAgICAgIGlmIHR5cGUoY2VsbCkuX19uYW1lX18gIT0gIk1lcmdlZENlbGwiOgogICAgICAgICAgICAgICAgY2VsbC52YWx1ZSA9IHRhbnRvX3NpdGVzW2ldIGlmIGkgPCBsZW4odGFudG9fc2l0ZXMpIGVsc2UgTm9uZQogICAgICAgIGV4Y2VwdDogcGFzcwoKICAgIHN0YXJ0ID0gZGF0ZSh5LCBtLCAxNikKICAgIGVuZCAgID0gZGF0ZSh5LCBtKzEsIDE1KSBpZiBtIDwgMTIgZWxzZSBkYXRlKHkrMSwgMSwgMTUpCiAgICB0b3RhbCA9IChlbmQgLSBzdGFydCkuZGF5cyArIDEKCiAgICAjIOepuueZveOBq+OBquOCi+ihjO+8iOihjDE444CcMjA6IDI544CcMzHml6XjgYzlrZjlnKjjgZfjgarjgYTloLTlkIjvvInjgpLjgq/jg6rjgqIKICAgICMg5b2T5pyI44Gu5pyr5pel44KS56K66KqN44GX44Gm5LiN6KaB44Gq6KGM44KS56m655m944GrCiAgICBpbXBvcnQgY2FsZW5kYXIKICAgIGxhc3RfZGF5ID0gY2FsZW5kYXIubW9udGhyYW5nZSh5LCBtKVsxXSAgIyDlvZPmnIjjga7mnKvml6UKICAgICMgMjnml6XjgYzjgarjgYTloLTlkIjihpLooYwxOOOCr+ODquOCouOAgTMw5pel44GM44Gq44GE5aC05ZCI4oaS6KGMMTnjgq/jg6rjgqLjgIEzMeaXpeOBjOOBquOBhOWgtOWQiOKGkuihjDIw44Kv44Oq44KiCiAgICBmb3IgZXh0cmFfZGF5LCBleHRyYV9yb3cgaW4gWygyOSwgMTgpLCAoMzAsIDE5KSwgKDMxLCAyMCldOgogICAgICAgIGlmIGxhc3RfZGF5IDwgZXh0cmFfZGF5OgogICAgICAgICAgICBmb3IgY29sIGluIFsyLCAzLCA0LCA4LCAxNCwgMTYsIDE4XToKICAgICAgICAgICAgICAgIHRyeTogd3MuY2VsbChyb3c9ZXh0cmFfcm93LCBjb2x1bW49Y29sKS52YWx1ZSA9IE5vbmUKICAgICAgICAgICAgICAgIGV4Y2VwdDogcGFzcwoKICAgIENPTE9SX0NPTFMgPSBbMiwgMywgNCwgOCwgMTQsIDE2LCAxOCwgMTldCgogICAgZGVmIHNhZmVfd3JpdGUociwgYywgdik6CiAgICAgICAgdHJ5OgogICAgICAgICAgICBjZWxsID0gd3MuY2VsbChyb3c9ciwgY29sdW1uPWMpCiAgICAgICAgICAgIGlmIHR5cGUoY2VsbCkuX19uYW1lX18gIT0gIk1lcmdlZENlbGwiOgogICAgICAgICAgICAgICAgY2VsbC52YWx1ZSA9IHYKICAgICAgICBleGNlcHQ6IHBhc3MKCiAgICBkZWYgbWVyZ2VfZG1fbGFiZWwoZXIsIGxhYmVsKToKICAgICAgICBmb3Igcm5nX3N0ciBpbiBbIkQlZDpHJWQiICUgKGVyLGVyKSwgIkglZDpNJWQiICUgKGVyLGVyKV06CiAgICAgICAgICAgIHRyeTogd3MudW5tZXJnZV9jZWxscyhybmdfc3RyKQogICAgICAgICAgICBleGNlcHQ6IHBhc3MKICAgICAgICB3cy5tZXJnZV9jZWxscygiRCVkOk0lZCIgJSAoZXIsZXIpKQogICAgICAgIGNlbGwgPSB3cy5jZWxsKHJvdz1lciwgY29sdW1uPTQpCiAgICAgICAgY2VsbC52YWx1ZSA9IGxhYmVsCiAgICAgICAgY2VsbC5hbGlnbm1lbnQgPSBBbGlnbm1lbnQoaG9yaXpvbnRhbD0iY2VudGVyIiwgdmVydGljYWw9ImNlbnRlciIpCgogICAgZm9yIGlkeCwgcm93IGluIGVudW1lcmF0ZShyb3dzX2RhdGEpOgogICAgICAgICMg44OG44Oz44OX44Os44O844OI44Gu6KGM44Oe44OD44OU44Oz44KwOgogICAgICAgICMgaWR4IDDjgJwxMiAg4oaSIOihjDXjgJwxNyAgKDE25pel44CcMjjml6UpCiAgICAgICAgIyBpZHggMTPjgJwxNSDihpIg6KGMMTjjgJwyMCAoMjnjgJwzMeaXpeOAgeaciOOBq+OCiOOBo+OBpuepuueZveOBguOCiikKICAgICAgICAjIGlkeCAxNuOAnDMwIOKGkiDooYwyMeOAnDM1ICjnv4zmnIgx44CcMTXml6UpCiAgICAgICAgZCA9IHN0YXJ0ICsgdGltZWRlbHRhKGRheXM9aWR4KQogICAgICAgIGRheV9vZl9tb250aCA9IGQuZGF5CiAgICAgICAgaWYgZGF5X29mX21vbnRoID49IDE2OgogICAgICAgICAgICAjIOW9k+aciDE25pel44Cc5pyr5pelOiBpZHg9MCgxNuaXpSnihpLooYw1LCBpZHg9MTIoMjjml6Up4oaS6KGMMTcsIGlkeD0xMygyOeaXpSnihpLooYwxOC4uLgogICAgICAgICAgICBlciA9IDUgKyBpZHgKICAgICAgICBlbHNlOgogICAgICAgICAgICAjIOe/jOaciDHjgJwxNeaXpTogMeaXpeKGkuihjDIxLCAy5pel4oaS6KGMMjIsIC4uLjE15pel4oaS6KGMMzUKICAgICAgICAgICAgZXIgPSAyMCArIGRheV9vZl9tb250aAogICAgICAgIGR3ICA9IGQud2Vla2RheSgpCiAgICAgICAgcnQgID0gcm93LmdldCgidHlwZSIsICJ3b3JrIikKICAgICAgICBpc19zYXQgPSBkdyA9PSA1CiAgICAgICAgaXNfc3VuID0gZHcgPT0gNgoKICAgICAgICBpZiBydCBpbiAoInBhaWQiLCAiZGFpa3l1IiwgImFic2VudCIpOgogICAgICAgICAgICBjID0gIkZGRkY5OTAwIgogICAgICAgIGVsaWYgcnQgaW4gKCJvZmYiLCAiaG9saWRheSIsICJob2xpLXdvcmsiKSBvciBpc19zYXQgb3IgaXNfc3VuOgogICAgICAgICAgICBjID0gIkZGRkZGRjAwIgogICAgICAgIGVsc2U6CiAgICAgICAgICAgIGMgPSAiRkZGRkZGRkYiCgogICAgICAgIGZpbGwgPSBQYXR0ZXJuRmlsbCgic29saWQiLCBmZ0NvbG9yPWMpCiAgICAgICAgYiA9IHdzLmNlbGwocm93PWVyLCBjb2x1bW49MikKICAgICAgICBiLnZhbHVlID0gZDsgYi5udW1iZXJfZm9ybWF0ID0gImQiCiAgICAgICAgY3YgPSB3cy5jZWxsKHJvdz1lciwgY29sdW1uPTMpCiAgICAgICAgY3YudmFsdWUgPSBkOyBjdi5udW1iZXJfZm9ybWF0ID0gIkFBQSIKICAgICAgICBmb3IgY24gaW4gQ09MT1JfQ09MUzoKICAgICAgICAgICAgdHJ5OiB3cy5jZWxsKHJvdz1lciwgY29sdW1uPWNuKS5maWxsID0gZmlsbAogICAgICAgICAgICBleGNlcHQgQXR0cmlidXRlRXJyb3I6IHBhc3MKCiAgICAgICAgZm9yIGNuIGluIFs0LCA4LCAxNCwgMTZdOgogICAgICAgICAgICB0cnk6CiAgICAgICAgICAgICAgICBjZWxsID0gd3MuY2VsbChyb3c9ZXIsIGNvbHVtbj1jbikKICAgICAgICAgICAgICAgIGlmIHR5cGUoY2VsbCkuX19uYW1lX18gPT0gIk1lcmdlZENlbGwiOiBjb250aW51ZQogICAgICAgICAgICAgICAgaWYgbm90IHN0cihjZWxsLnZhbHVlIG9yICIiKS5zdGFydHN3aXRoKCI9Iik6CiAgICAgICAgICAgICAgICAgICAgY2VsbC52YWx1ZSA9IE5vbmUKICAgICAgICAgICAgZXhjZXB0OiBwYXNzCiAgICAgICAgIyBS5YiX77yI5pep5Ye677yJ44KC5pWw5byP44Gu5aC05ZCI44Gv44Gd44Gu44G+44G+44CB5YCk44Gu5aC05ZCI44GvTm9uZeOBqwogICAgICAgIHRyeToKICAgICAgICAgICAgcl9jZWxsID0gd3MuY2VsbChyb3c9ZXIsIGNvbHVtbj0xOCkKICAgICAgICAgICAgaWYgdHlwZShyX2NlbGwpLl9fbmFtZV9fICE9ICJNZXJnZWRDZWxsIiBhbmQgbm90IHN0cihyX2NlbGwudmFsdWUgb3IgIiIpLnN0YXJ0c3dpdGgoIj0iKToKICAgICAgICAgICAgICAgIHJfY2VsbC52YWx1ZSA9IE5vbmUKICAgICAgICBleGNlcHQ6IHBhc3MKCiAgICAgICAgaWYgcnQgaW4gKCJ3b3JrIiwgImhvbGktd29yayIpOgogICAgICAgICAgICBpZiByb3cuZ2V0KCJzaXRlIik6CiAgICAgICAgICAgICAgICBzYWZlX3dyaXRlKGVyLCA0LCByb3dbInNpdGUiXSkKICAgICAgICAgICAgICAgIHRyeToKICAgICAgICAgICAgICAgICAgICBmcm9tIG9wZW5weXhsLnN0eWxlcyBpbXBvcnQgRm9udAogICAgICAgICAgICAgICAgICAgIGNlbGwgPSB3cy5jZWxsKHJvdz1lciwgY29sdW1uPTQpCiAgICAgICAgICAgICAgICAgICAgdGV4dF9sZW4gPSBsZW4ocm93WyJzaXRlIl0pCiAgICAgICAgICAgICAgICAgICAgaWYgdGV4dF9sZW4gPiA4OgogICAgICAgICAgICAgICAgICAgICAgICBuZXdfc2l6ZSA9IG1heCg2LCAoY2VsbC5mb250LnNpemUgb3IgMTApIC0gKHRleHRfbGVuIC0gOCkgKiAwLjMpCiAgICAgICAgICAgICAgICAgICAgICAgIGNlbGwuZm9udCA9IEZvbnQobmFtZT1jZWxsLmZvbnQubmFtZSwgc2l6ZT1uZXdfc2l6ZSwgYm9sZD1jZWxsLmZvbnQuYm9sZCwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGl0YWxpYz1jZWxsLmZvbnQuaXRhbGljLCBjb2xvcj1jZWxsLmZvbnQuY29sb3IpCiAgICAgICAgICAgICAgICBleGNlcHQ6IHBhc3MKICAgICAgICAgICAgaWYgcm93LmdldCgidGFzayIpOgogICAgICAgICAgICAgICAgc2FmZV93cml0ZShlciwgOCwgcm93WyJ0YXNrIl0pCiAgICAgICAgICAgICAgICB0cnk6CiAgICAgICAgICAgICAgICAgICAgZnJvbSBvcGVucHl4bC5zdHlsZXMgaW1wb3J0IEZvbnQKICAgICAgICAgICAgICAgICAgICBjZWxsID0gd3MuY2VsbChyb3c9ZXIsIGNvbHVtbj04KQogICAgICAgICAgICAgICAgICAgIHRleHRfbGVuID0gbGVuKHJvd1sidGFzayJdKQogICAgICAgICAgICAgICAgICAgIGlmIHRleHRfbGVuID4gODoKICAgICAgICAgICAgICAgICAgICAgICAgbmV3X3NpemUgPSBtYXgoNiwgKGNlbGwuZm9udC5zaXplIG9yIDEwKSAtICh0ZXh0X2xlbiAtIDgpICogMC4zKQogICAgICAgICAgICAgICAgICAgICAgICBjZWxsLmZvbnQgPSBGb250KG5hbWU9Y2VsbC5mb250Lm5hbWUsIHNpemU9bmV3X3NpemUsIGJvbGQ9Y2VsbC5mb250LmJvbGQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpdGFsaWM9Y2VsbC5mb250Lml0YWxpYywgY29sb3I9Y2VsbC5mb250LmNvbG9yKQogICAgICAgICAgICAgICAgZXhjZXB0OiBwYXNzCiAgICAgICAgICAgIGlmIHJvdy5nZXQoInN0YXJ0Iik6CiAgICAgICAgICAgICAgICAjIDA4OjAwIOKGkiA4OjAwIOW9ouW8j+OBq+WkieaPmwogICAgICAgICAgICAgICAgcyA9IHJvd1sic3RhcnQiXS5sc3RyaXAoIjAiKS5yZXBsYWNlKCI6MDAiLCAiOjAwIikKICAgICAgICAgICAgICAgIGlmIHMuc3RhcnRzd2l0aCgiOiIpOiBzID0gIjAiICsgcwogICAgICAgICAgICAgICAgc2FmZV93cml0ZShlciwgMTQsIHMpCiAgICAgICAgICAgIGlmIHJvdy5nZXQoImVuZCIpOgogICAgICAgICAgICAgICAgZSA9IHJvd1siZW5kIl0ubHN0cmlwKCIwIikucmVwbGFjZSgiOjAwIiwgIjowMCIpCiAgICAgICAgICAgICAgICBpZiBlLnN0YXJ0c3dpdGgoIjoiKTogZSA9ICIwIiArIGUKICAgICAgICAgICAgICAgIHNhZmVfd3JpdGUoZXIsIDE2LCBlKQogICAgICAgICAgICBoYXlhZGUgPSByb3cuZ2V0KCJoYXlhZGUiLCAiIikKICAgICAgICAgICAgaWYgaGF5YWRlOgogICAgICAgICAgICAgICAgdHJ5OgogICAgICAgICAgICAgICAgICAgIGNlbGwgPSB3cy5jZWxsKHJvdz1lciwgY29sdW1uPTE4KQogICAgICAgICAgICAgICAgICAgIGlmIHR5cGUoY2VsbCkuX19uYW1lX18gIT0gIk1lcmdlZENlbGwiOgogICAgICAgICAgICAgICAgICAgICAgICBjZWxsLnZhbHVlID0gZmxvYXQoaGF5YWRlKQogICAgICAgICAgICAgICAgZXhjZXB0OiBwYXNzCiAgICAgICAgZWxpZiBydCA9PSAicGFpZCI6CiAgICAgICAgICAgIG1lcmdlX2RtX2xhYmVsKGVyLCAiXHU2NzA5XHU0ZjExIikKICAgICAgICAgICAgc2FmZV93cml0ZShlciwgMTQsIE5vbmUpOyBzYWZlX3dyaXRlKGVyLCAxNiwgTm9uZSkKICAgICAgICBlbGlmIHJ0ID09ICJkYWlreXUiOgogICAgICAgICAgICBtZXJnZV9kbV9sYWJlbChlciwgIlx1NGVlM1x1NGYxMSIpCiAgICAgICAgICAgIHNhZmVfd3JpdGUoZXIsIDE0LCBOb25lKTsgc2FmZV93cml0ZShlciwgMTYsIE5vbmUpCiAgICAgICAgZWxpZiBydCA9PSAib2ZmIjoKICAgICAgICAgICAgc2FmZV93cml0ZShlciwgNCwgIlx1NGYxMVx1MzA3ZiIpCiAgICAgICAgICAgIHNhZmVfd3JpdGUoZXIsIDE0LCBOb25lKTsgc2FmZV93cml0ZShlciwgMTYsIE5vbmUpCiAgICAgICAgZWxpZiBydCA9PSAiaG9saWRheSI6CiAgICAgICAgICAgIHNhZmVfd3JpdGUoZXIsIDQsICJcdTc5NWRcdTY1ZTUiKQogICAgICAgICAgICBzYWZlX3dyaXRlKGVyLCAxNCwgTm9uZSk7IHNhZmVfd3JpdGUoZXIsIDE2LCBOb25lKQogICAgICAgIGVsaWYgcnQgPT0gImFic2VudCI6CiAgICAgICAgICAgIHNhZmVfd3JpdGUoZXIsIDQsICJcdTZiMjBcdTUyZTQiKQogICAgICAgICAgICBzYWZlX3dyaXRlKGVyLCAxNCwgTm9uZSk7IHNhZmVfd3JpdGUoZXIsIDE2LCBOb25lKQoKICAgICMg5Y2w5Yi36Kit5a6aCiAgICB3cy5wcmludF9hcmVhID0gIkIyOkFBNDYiCiAgICB3cy5wYWdlX3NldHVwLm9yaWVudGF0aW9uID0gInBvcnRyYWl0IgogICAgd3MucGFnZV9zZXR1cC5wYXBlclNpemUgICA9IDkgICAgICAgICAgIyBBNAogICAgd3MucGFnZV9zZXR1cC5maXRUb1dpZHRoICA9IDEKICAgIHdzLnBhZ2Vfc2V0dXAuZml0VG9IZWlnaHQgPSAxCiAgICB3cy5wYWdlX21hcmdpbnMgPSBQYWdlTWFyZ2lucyhsZWZ0PTAuNSwgcmlnaHQ9MC41LCB0b3A9MC43NSwgYm90dG9tPTAuNzUpCgoKCiAgICBidWYgPSBpby5CeXRlc0lPKCkKICAgIHdiLnNhdmUoYnVmKQogICAgcmV0dXJuIGJhc2U2NC5iNjRlbmNvZGUoYnVmLmdldHZhbHVlKCkpLmRlY29kZSgpCg==";
 const HOLI_CODE_B64 = "CmltcG9ydCBvcGVucHl4bApmcm9tIG9wZW5weXhsLnN0eWxlcyBpbXBvcnQgRm9udAppbXBvcnQgaW8sIGJhc2U2NCwganNvbiwgemlwZmlsZSwgcmUKZnJvbSBkYXRldGltZSBpbXBvcnQgZGF0ZSwgdGltZWRlbHRhCgpkZWYgZ2VuZXJhdGVfaG9saV9yZXBvcnQoZGF0YV9qc29uLCBob2xpX3RtcGxfYjY0KToKICAgIGRhdGEgPSBqc29uLmxvYWRzKGRhdGFfanNvbikKICAgIG5hbWUgPSBkYXRhLmdldCgibmFtZSIsICIiKQogICAgcm93c19kYXRhID0gZGF0YS5nZXQoInJvd3MiLCBbXSkKICAgIHltID0gZGF0YS5nZXQoInllYXJtb250aCIsICIyMDI1LTA3IikKICAgIHksIG0gPSBtYXAoaW50LCB5bS5zcGxpdCgiLSIpKQogICAgc3RhcnQgPSBkYXRlKHksIG0sIDE2KQogICAgWU9VQkkgPSBbIlx1NjcwOCIsIlx1NzA2YiIsIlx1NmMzNCIsIlx1NjcyOCIsIlx1OTFkMSIsIlx1NTcxZiIsIlx1NjVlNSJdCgogICAgaG9saV9kYXlzID0gW10KICAgIGZvciBpZHgsIHJvdyBpbiBlbnVtZXJhdGUocm93c19kYXRhKToKICAgICAgICBpZiByb3cuZ2V0KCJ0eXBlIikgPT0gImhvbGktd29yayI6CiAgICAgICAgICAgIGQgPSBzdGFydCArIHRpbWVkZWx0YShkYXlzPWlkeCkKICAgICAgICAgICAgaG9saV9kYXlzLmFwcGVuZCgoZCwgcm93LmdldCgic2l0ZSIsICIiKSkpCgogICAgaWYgbm90IGhvbGlfZGF5czoKICAgICAgICByZXR1cm4gTm9uZQoKICAgICMg44OG44Oz44OX44Os44O844OI44GuU2hlZXQxIFhNTOOCkuOCs+ODlOODvOOBl+OBplNoZWV0Miwz44KS5LiK5pu444GN5L2c5oiQCiAgICB0bXBsX2J5dGVzID0gYmFzZTY0LmI2NGRlY29kZShob2xpX3RtcGxfYjY0KQoKICAgICMg44G+44Ga5paw44GX44GEeGxzeOOCkuODoeODouODquOBp+e1hOOBv+eri+OBpgogICAgb3V0X2J1ZiA9IGlvLkJ5dGVzSU8oKQogICAgd2l0aCB6aXBmaWxlLlppcEZpbGUoaW8uQnl0ZXNJTyh0bXBsX2J5dGVzKSkgYXMgemluLCBcCiAgICAgICAgIHppcGZpbGUuWmlwRmlsZShvdXRfYnVmLCAndycsIHppcGZpbGUuWklQX0RFRkxBVEVEKSBhcyB6b3V0OgogICAgICAgIHNoZWV0MV94bWwgPSB6aW4ucmVhZCgneGwvd29ya3NoZWV0cy9zaGVldDEueG1sJykKICAgICAgICBwYWdlcyA9IChsZW4oaG9saV9kYXlzKSArIDEpIC8vIDIKICAgICAgICBmb3IgaXRlbSBpbiB6aW4uaW5mb2xpc3QoKToKICAgICAgICAgICAgaWYgaXRlbS5maWxlbmFtZS5zdGFydHN3aXRoKCd4bC93b3Jrc2hlZXRzL3NoZWV0Jyk6CiAgICAgICAgICAgICAgICBudW0gPSBpbnQocmUuc2VhcmNoKHInc2hlZXQoXGQrKScsIGl0ZW0uZmlsZW5hbWUpLmdyb3VwKDEpKQogICAgICAgICAgICAgICAgaWYgbnVtIDw9IHBhZ2VzOgogICAgICAgICAgICAgICAgICAgICMg44GT44Gu44Oa44O844K444Gv5L2/44GGIOKGkiBTaGVldDHjga5YTUzjgpLjgrPjg5Tjg7wKICAgICAgICAgICAgICAgICAgICB6b3V0LndyaXRlc3RyKGl0ZW0sIHNoZWV0MV94bWwpCiAgICAgICAgICAgICAgICBlbHNlOgogICAgICAgICAgICAgICAgICAgICMg5L2/44KP44Gq44GE44Oa44O844K444Gv56m644Gu44G+44G+CiAgICAgICAgICAgICAgICAgICAgem91dC53cml0ZXN0cihpdGVtLCB6aW4ucmVhZChpdGVtLmZpbGVuYW1lKSkKICAgICAgICAgICAgZWxzZToKICAgICAgICAgICAgICAgIHpvdXQud3JpdGVzdHIoaXRlbSwgemluLnJlYWQoaXRlbS5maWxlbmFtZSkpCgogICAgIyBvcGVucHl4bOOBp+mWi+OBhOOBpuWApOOCkuabuOOBjei+vOOCgAogICAgd2IgPSBvcGVucHl4bC5sb2FkX3dvcmtib29rKGlvLkJ5dGVzSU8ob3V0X2J1Zi5nZXR2YWx1ZSgpKSkKCiAgICBmb3IgcGFnZSBpbiByYW5nZSgobGVuKGhvbGlfZGF5cykgKyAxKSAvLyAyKToKICAgICAgICB3cyA9IHdiLndvcmtzaGVldHNbcGFnZV0KICAgICAgICB3cy5yb3dfZGltZW5zaW9uc1syXS5oZWlnaHQgPSAyOAogICAgICAgIHdzLnJvd19kaW1lbnNpb25zWzI0XS5oZWlnaHQgPSAyOAogICAgICAgIGZvciBzbG90IGluIHJhbmdlKDIpOgogICAgICAgICAgICBpZHggPSBwYWdlICogMiArIHNsb3QKICAgICAgICAgICAgaWYgaWR4ID49IGxlbihob2xpX2RheXMpOgogICAgICAgICAgICAgICAgIyAy5Lu255uu44GM44Gq44GE5aC05ZCI44Gv56m655m944GrCiAgICAgICAgICAgICAgICBvZmZzZXQgPSAyMgogICAgICAgICAgICAgICAgd3MuY2VsbChyb3c9NCtvZmZzZXQsIGNvbHVtbj03KS52YWx1ZSA9IE5vbmUKICAgICAgICAgICAgICAgIHdzLmNlbGwocm93PTYrb2Zmc2V0LCBjb2x1bW49NSkudmFsdWUgPSBOb25lCiAgICAgICAgICAgICAgICB3cy5jZWxsKHJvdz0xNCtvZmZzZXQsIGNvbHVtbj00KS52YWx1ZSA9IE5vbmUKICAgICAgICAgICAgICAgIGJyZWFrCiAgICAgICAgICAgIGQsIHNpdGUgPSBob2xpX2RheXNbaWR4XQogICAgICAgICAgICB5b3ViaSA9IFlPVUJJW2Qud2Vla2RheSgpXQogICAgICAgICAgICBvZmZzZXQgPSAwIGlmIHNsb3QgPT0gMCBlbHNlIDIyCiAgICAgICAgICAgIHdzLmNlbGwocm93PTQrb2Zmc2V0LCBjb2x1bW49NykudmFsdWUgPSBuYW1lCiAgICAgICAgICAgIHdzLmNlbGwocm93PTYrb2Zmc2V0LCBjb2x1bW49NSkudmFsdWUgPSAoCiAgICAgICAgICAgICAgICBmIntkLm1vbnRofVx1MzAwMFx1NjcwOHtkLmRheX1cdTMwMDBcdTY1ZTUiCiAgICAgICAgICAgICAgICBmIlx1MzAwMFx1ZmYwOFx1MzAwMHt5b3ViaX1cdTY2ZGNcdTY1ZTVcdTMwMDBcdWZmMDkiCiAgICAgICAgICAgICkKICAgICAgICAgICAgc2l0ZV9jZWxsID0gd3MuY2VsbChyb3c9MTQrb2Zmc2V0LCBjb2x1bW49NCkKICAgICAgICAgICAgc2l0ZV9jZWxsLnZhbHVlID0gc2l0ZQogICAgICAgICAgICBpZiBzaXRlIGFuZCBsZW4oc2l0ZSkgPiA4OgogICAgICAgICAgICAgICAgdHJ5OgogICAgICAgICAgICAgICAgICAgIG5ld19zaXplID0gbWF4KDcsIChzaXRlX2NlbGwuZm9udC5zaXplIG9yIDExKSAtIChsZW4oc2l0ZSktOCkqMC40KQogICAgICAgICAgICAgICAgICAgIHNpdGVfY2VsbC5mb250ID0gRm9udCgKICAgICAgICAgICAgICAgICAgICAgICAgbmFtZT1zaXRlX2NlbGwuZm9udC5uYW1lLCBzaXplPW5ld19zaXplLAogICAgICAgICAgICAgICAgICAgICAgICBib2xkPXNpdGVfY2VsbC5mb250LmJvbGQsIGl0YWxpYz1zaXRlX2NlbGwuZm9udC5pdGFsaWMsCiAgICAgICAgICAgICAgICAgICAgICAgIGNvbG9yPXNpdGVfY2VsbC5mb250LmNvbG9yKQogICAgICAgICAgICAgICAgZXhjZXB0OiBwYXNzCgogICAgYnVmID0gaW8uQnl0ZXNJTygpCiAgICB3Yi5zYXZlKGJ1ZikKICAgIHJldHVybiBiYXNlNjQuYjY0ZW5jb2RlKGJ1Zi5nZXR2YWx1ZSgpKS5kZWNvZGUoKQo=";
 
+// ── 国民の祝日テーブル（2025〜2027） ──
+const HOLIDAYS = {
+  // 2025年
+  '2025-01-01':'元日','2025-01-13':'成人の日','2025-02-11':'建国記念の日',
+  '2025-02-23':'天皇誕生日','2025-02-24':'振替休日','2025-03-20':'春分の日',
+  '2025-04-29':'昭和の日','2025-05-03':'憲法記念日','2025-05-04':'みどりの日',
+  '2025-05-05':'こどもの日','2025-05-06':'振替休日','2025-07-21':'海の日',
+  '2025-08-11':'山の日','2025-09-15':'敬老の日','2025-09-23':'秋分の日',
+  '2025-10-13':'スポーツの日','2025-11-03':'文化の日','2025-11-23':'勤労感謝の日',
+  '2025-11-24':'振替休日',
+  // 2026年
+  '2026-01-01':'元日','2026-01-12':'成人の日','2026-02-11':'建国記念の日',
+  '2026-02-23':'天皇誕生日','2026-03-20':'春分の日','2026-04-29':'昭和の日',
+  '2026-05-03':'憲法記念日','2026-05-04':'みどりの日','2026-05-05':'こどもの日',
+  '2026-05-06':'振替休日','2026-07-20':'海の日','2026-08-11':'山の日',
+  '2026-09-21':'敬老の日','2026-09-22':'国民の休日','2026-09-23':'秋分の日',
+  '2026-10-12':'スポーツの日','2026-11-03':'文化の日','2026-11-23':'勤労感謝の日',
+  '2026-11-24':'振替休日',
+  // 2027年
+  '2027-01-01':'元日','2027-01-11':'成人の日','2027-02-11':'建国記念の日',
+  '2027-02-23':'天皇誕生日','2027-03-21':'春分の日','2027-03-22':'振替休日',
+  '2027-04-29':'昭和の日','2027-05-03':'憲法記念日','2027-05-04':'みどりの日',
+  '2027-05-05':'こどもの日','2027-05-06':'振替休日',
+  '2027-07-19':'海の日','2027-08-11':'山の日','2027-09-20':'敬老の日',
+  '2027-09-23':'秋分の日','2027-10-11':'スポーツの日','2027-11-03':'文化の日',
+  '2027-11-23':'勤労感謝の日','2027-11-24':'振替休日',
+};
 const YOUBI      = ['日','月','火','水','木','金','土'];
 const YOUBI_FULL = ['日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'];
-const TYPE_LABEL = {work:'出勤','holi-work':'休日出勤',off:'休み',paid:'有休',daikyu:'代休',holiday:'祝日',absent:'欠勤'};
-const BADGE_CLS  = {work:'badge-work','holi-work':'badge-holi-work',off:'badge-off',paid:'badge-paid',daikyu:'badge-daikyu',holiday:'badge-holiday',absent:'badge-absent'};
+const TYPE_LABEL = {work:'出勤','holi-work':'休日出勤',off:'休み',paid:'有休',daikyu:'代休',absent:'欠勤'};
+const BADGE_CLS  = {work:'badge-work','holi-work':'badge-holi-work',off:'badge-off',paid:'badge-paid',daikyu:'badge-daikyu',absent:'badge-absent'};
 const DEFAULT_START = '08:00';
 const DEFAULT_END   = '18:00';
 const GLOBAL_KEY    = 'sakugyo_global_v6';
@@ -476,6 +527,191 @@ await micropip.install('openpyxl')
 }
 
 // ── 現場名 ──
+// ── GPS位置情報 ──
+// GPS機能のON/OFF状態
+let gpsEnabled = localStorage.getItem('gps_enabled') !== 'false'; // デフォルトON
+function applyGpsState() {
+  const track = document.getElementById('gpsToggleTrack');
+  const knob = document.getElementById('gpsToggleKnob');
+  if (track && knob) {
+    if (gpsEnabled) {
+      track.style.background = 'var(--accent2)';
+      track.style.borderColor = 'var(--accent2)';
+      knob.style.left = '22px';
+      knob.style.background = '#fff';
+    } else {
+      track.style.background = 'var(--surface2)';
+      track.style.borderColor = 'var(--border)';
+      knob.style.left = '2px';
+      knob.style.background = 'var(--text-muted)';
+    }
+  }
+  // 今日の現場取得ボタン
+  const todayBtn = document.getElementById('todayGeoBtn');
+  if (todayBtn) todayBtn.style.display = gpsEnabled ? 'block' : 'none';
+  // 現場タグの📍・日別の📍を再描画で反映
+  renderSiteTags();
+  renderDays();
+}
+function toggleGps() {
+  gpsEnabled = !gpsEnabled;
+  localStorage.setItem('gps_enabled', gpsEnabled ? 'true' : 'false');
+  applyGpsState();
+  showToast(gpsEnabled ? '📍 GPS機能 ON' : '📍 GPS機能 OFF');
+}
+// 2点間の距離(m)をHubeny簡易式で計算
+function geoDistance(lat1, lng1, lat2, lng2) {
+  const R = 6378137; // 地球半径(m)
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+// 現在地を取得（Promise）
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) { reject(new Error('位置情報非対応')); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve(pos.coords),
+      err => reject(err),
+      { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+    );
+  });
+}
+// 現場に現在地を登録
+async function registerSiteLocation(name) {
+  showToast('📡 位置情報を取得中...');
+  try {
+    const c = await getCurrentPosition();
+    const s = siteList.find(s=>(s.name||s)===name);
+    if (!s || typeof s === 'string') {
+      // 旧形式（文字列）の場合はオブジェクト化
+      const idx = siteList.findIndex(x=>(x.name||x)===name);
+      if (idx >= 0) siteList[idx] = {name:name, client:'', lat:c.latitude, lng:c.longitude};
+    } else {
+      s.lat = c.latitude; s.lng = c.longitude;
+    }
+    renderSiteTags(); saveData();
+    showToast(`✅ ${name} に位置情報を登録（精度±${Math.round(c.accuracy)}m）`);
+  } catch(e) {
+    showToast('❌ 位置取得失敗: ' + (e.code===1?'許可されていません':e.message||'タイムアウト'));
+  }
+}
+// 現在地から近い現場を検出（日別入力用）
+const GEO_RADIUS = 300; // 検出半径(m)
+async function detectSiteForDay(i) {
+  const geoSites = siteList.filter(s=>typeof s.lat==='number' && typeof s.lng==='number');
+  if (!geoSites.length) { showToast('⚠️ 位置登録済みの現場がありません'); return; }
+  showToast('📡 現在地を取得中...');
+  try {
+    const c = await getCurrentPosition();
+    const hits = geoSites
+      .map(s=>({s, d:geoDistance(c.latitude, c.longitude, s.lat, s.lng)}))
+      .filter(x=>x.d <= GEO_RADIUS)
+      .sort((a,b)=>a.d-b.d);
+    if (!hits.length) {
+      const nearest = geoSites
+        .map(s=>({s, d:geoDistance(c.latitude, c.longitude, s.lat, s.lng)}))
+        .sort((a,b)=>a.d-b.d)[0];
+      showToast(`❌ 近くに現場なし（最寄: ${nearest.s.name} ${Math.round(nearest.d)}m）`);
+      return;
+    }
+    if (hits.length === 1) {
+      applyDetectedSite(i, hits[0].s.name, true);
+      showToast(`✅ ${hits[0].s.name}（${Math.round(hits[0].d)}m）`);
+    } else {
+      showSiteCandidates(i, hits, true);
+    }
+  } catch(e) {
+    showToast('❌ 位置取得失敗: ' + (e.code===1?'許可されていません':e.message||'タイムアウト'));
+  }
+}
+// 検出した現場を日別入力に反映
+function applyDetectedSite(i, name, moveToTask) {
+  updateRow(i, 'site', name);
+  const sel = document.getElementById('sel-'+i);
+  const inp = document.getElementById('inp-'+i);
+  if (sel && inp) {
+    sel.style.display = 'flex'; sel.value = name; inp.style.display = 'none';
+  }
+  if (moveToTask) focusTaskInput(i);
+}
+// 指定行を展開して作業内容欄にフォーカス・スクロール
+function focusTaskInput(i) {
+  const row = document.getElementById('row-'+i);
+  if (!row) return;
+  document.querySelectorAll('.day-row.open').forEach(el=>el.classList.remove('open'));
+  row.classList.add('open');
+  const taskInput = document.getElementById('task-'+i);
+  setTimeout(()=>{
+    if (taskInput) {
+      taskInput.scrollIntoView({behavior:'smooth', block:'center'});
+      taskInput.focus();
+    } else {
+      row.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  }, 150);
+}
+// 複数候補をモーダルで表示
+function showSiteCandidates(i, hits, moveToTask) {
+  const ov = document.getElementById('geoCandOverlay');
+  const list = document.getElementById('geoCandList');
+  list.innerHTML = '';
+  hits.forEach(h=>{
+    const b = document.createElement('button');
+    b.style.cssText = 'width:100%;text-align:left;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;';
+    b.innerHTML = `<span>${h.s.name}</span><span style="font-size:12px;color:var(--accent2);">${Math.round(h.d)}m</span>`;
+    b.addEventListener('click', ()=>{
+      applyDetectedSite(i, h.s.name, moveToTask);
+      ov.style.display='none';
+      showToast(`✅ ${h.s.name}（${Math.round(h.d)}m）`);
+    });
+    list.appendChild(b);
+  });
+  ov.style.display = 'flex';
+}
+
+// ── 今日の現場をワンタップ取得 ──
+async function detectTodaySite() {
+  const geoSites = siteList.filter(s=>typeof s.lat==='number' && typeof s.lng==='number');
+  if (!geoSites.length) { showToast('⚠️ 位置登録済みの現場がありません'); return; }
+  // 今日の行を特定
+  const todayISO = dateToISO(new Date());
+  const todayIdx = rows.findIndex(r=>dateToISO(r.date)===todayISO);
+  if (todayIdx < 0) { showToast('⚠️ 今日は表示中の対象月の範囲外です'); return; }
+  const btn = document.getElementById('todayGeoBtn');
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = '📡 取得中...';
+  try {
+    const c = await getCurrentPosition();
+    // 今日が出勤系でなければ、休日なら休日出勤・平日なら出勤に変更
+    if (rows[todayIdx].type!=='work' && rows[todayIdx].type!=='holi-work') {
+      const _d = new Date(rows[todayIdx].date);
+      const _dow = _d.getDay(); // 0=日, 6=土
+      const _isHoliday = !!rows[todayIdx].holidayName;
+      const _newType = (_dow===0 || _dow===6 || _isHoliday) ? 'holi-work' : 'work';
+      setType(todayIdx, _newType);
+    }
+    const hits = geoSites
+      .map(s=>({s, d:geoDistance(c.latitude, c.longitude, s.lat, s.lng)}))
+      .filter(x=>x.d <= GEO_RADIUS)
+      .sort((a,b)=>a.d-b.d);
+    if (!hits.length) {
+      const nearest = geoSites
+        .map(s=>({s, d:geoDistance(c.latitude, c.longitude, s.lat, s.lng)}))
+        .sort((a,b)=>a.d-b.d)[0];
+      showToast(`❌ 近くに現場なし（最寄: ${nearest.s.name} ${Math.round(nearest.d)}m）`);
+    } else if (hits.length === 1) {
+      applyDetectedSite(todayIdx, hits[0].s.name, true);
+      showToast(`✅ ${hits[0].s.name}（${Math.round(hits[0].d)}m）`);
+    } else {
+      showSiteCandidates(todayIdx, hits, true);
+    }
+  } catch(e) {
+    showToast('❌ 位置取得失敗: ' + (e.code===1?'許可されていません':e.message||'タイムアウト'));
+  }
+  btn.disabled = false; btn.textContent = orig;
+}
+
 function addSite() {
   const inp = document.getElementById('siteInput'), val = inp.value.trim();
   if (!val || siteList.some(s=>s.name===val)) { inp.value = ''; return; }
@@ -495,16 +731,33 @@ function renderSiteTags() {
     const client = item.client || '';
     const wrap = document.createElement('div');
     wrap.style.cssText = 'display:flex;flex-direction:column;gap:3px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;font-size:13px;min-width:0;';
-    // 1行目：現場名 ＋ ×
+    // 1行目：現場名 ＋ 📍 ＋ ×
     const row1 = document.createElement('div');
     row1.style.cssText = 'display:flex;align-items:center;gap:6px;';
     row1.appendChild(document.createTextNode(name));
+    const hasGeo = (typeof item.lat === 'number' && typeof item.lng === 'number');
+    // 📍GPS登録ボタン（GPS有効時のみ）
+    if (gpsEnabled) {
+      const geoBtn = document.createElement('button');
+      geoBtn.textContent = '📍';
+      geoBtn.title = hasGeo ? '位置情報を更新（登録済み）' : '現在地を登録';
+      geoBtn.style.cssText = `background:none;border:none;cursor:pointer;font-size:13px;padding:0;margin-left:auto;opacity:${hasGeo?'1':'.35'};filter:${hasGeo?'none':'grayscale(1)'};`;
+      geoBtn.addEventListener('click', () => registerSiteLocation(name));
+      row1.appendChild(geoBtn);
+    }
     const btn = document.createElement('button');
     btn.textContent = '×';
-    btn.style.cssText = 'background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0;margin-left:auto;';
+    btn.style.cssText = `background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0;${gpsEnabled?'':'margin-left:auto;'}`;
     btn.addEventListener('click', () => removeSite(name));
     row1.appendChild(btn);
     wrap.appendChild(row1);
+    // 登録済みなら座標を小さく表示（GPS有効時のみ）
+    if (hasGeo && gpsEnabled) {
+      const geoLabel = document.createElement('div');
+      geoLabel.style.cssText = 'font-size:10px;color:var(--accent2);';
+      geoLabel.textContent = `📍 ${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}`;
+      wrap.appendChild(geoLabel);
+    }
     // 2行目：得意先入力
     const inp = document.createElement('input');
     inp.type = 'text';
@@ -620,21 +873,25 @@ function buildDays() {
   for(let i=0;i<31;i++){
     const d=new Date(y,m-1,16+i); if(d>new Date(y,m,15)) break;
     const dw=d.getDay(), isWE=dw===0||dw===6;
-    rows.push({date:new Date(d),youbi:YOUBI[dw],isWeekend:isWE,
-      site:'',task:'',start:isWE?'':DEFAULT_START,end:isWE?'':DEFAULT_END,
-      hayade:'',zangyo:'',type:isWE?'off':'work'});
+    const _iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const _hname=HOLIDAYS[_iso]||null;
+    const _isHoli=!!_hname;
+    rows.push({date:new Date(d),youbi:YOUBI[dw],isWeekend:isWE,holidayName:_hname,
+      site:'',task:'',start:(isWE||_isHoli)?'':DEFAULT_START,end:(isWE||_isHoli)?'':DEFAULT_END,
+      hayade:'',zangyo:'',type:(isWE||_isHoli)?'off':'work'});
   }
   renderDays();
 }
 function renderDays() {
   const cont=document.getElementById('daysContainer'); cont.innerHTML='';
-  const TYPES=['work','holi-work','off','paid','daikyu','holiday','absent'];
+  const TYPES=['work','holi-work','off','paid','daikyu','absent'];
   rows.forEach((r,i)=>{
     const d=r.date, dateStr=`${d.getMonth()+1}/${d.getDate()}`;
     const isOff=r.type!=='work'&&r.type!=='holi-work';
     const badge=r.type!=='off'?`<span class="day-badge ${BADGE_CLS[r.type]}">${TYPE_LABEL[r.type]}</span>`:'';
-    const summary=!isOff?(r.site?`${r.site}${r.task?'　'+r.task:''}`:'<span class="empty">未入力</span>'):TYPE_LABEL[r.type];
-    const rowCls=['day-row',r.isWeekend&&d.getDay()===6?'sat':'',r.isWeekend&&d.getDay()===0?'sun':'',isOff?'rest':''].filter(Boolean).join(' ');
+    const _holiSuffix=r.holidayName?`　<span style="color:#c084fc;font-weight:700;">(${r.holidayName})</span>`:'';
+    const summary=!isOff?(r.site?`${r.site}${r.task?'　'+r.task:''}`:'<span class="empty">未入力</span>'):TYPE_LABEL[r.type]+_holiSuffix;
+    const rowCls=['day-row',r.isWeekend&&d.getDay()===6?'sat':'',r.isWeekend&&d.getDay()===0?'sun':'',r.holidayName&&!r.isWeekend?'holiday':'',isOff?'rest':''].filter(Boolean).join(' ');
     const el=document.createElement('div'); el.className=rowCls; el.id=`row-${i}`;
     el.innerHTML=`
       <div class="day-header" onclick="toggleRow(${i})">
@@ -664,10 +921,12 @@ function renderDays() {
                 <button onclick="document.getElementById('sel-${i}').style.display='flex';document.getElementById('inp-${i}').style.display='none';updateRow(${i},'site','');"
                   style="display:${siteList.some(s=>(s.name||s)===r.site)||!r.site?'none':'flex'};padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text-muted);font-size:12px;cursor:pointer;align-items:center;"
                   id="back-${i}">戻る</button>
+                <button onclick="detectSiteForDay(${i})" title="現在地から現場を自動検出"
+                  style="flex:0 0 auto;padding:6px 10px;border-radius:8px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:14px;cursor:pointer;display:${gpsEnabled?'flex':'none'};align-items:center;">📍</button>
               </div>
             </div>
             <div class="field full"><label>作業内容</label>
-              <input type="text" placeholder="作業内容" value="${r.task}"
+              <input type="text" placeholder="作業内容" value="${r.task}" id="task-${i}"
                 oninput="updateRow(${i},'task',this.value)" onchange="updateRow(${i},'task',this.value)"></div>
             <div class="field"><label>始業時間</label>
               <input type="time" value="${r.start||DEFAULT_START}"
@@ -1428,7 +1687,7 @@ function renderKanriSites(){
 
 function clearAll(){
   if(!confirm('この月の入力内容をリセットしますか？'))return;
-  rows.forEach(r=>{r.site='';r.task='';r.start='';r.end='';r.hayade='';r.zangyo='';r.type=r.isWeekend?'off':'work';});
+  rows.forEach(r=>{r.site='';r.task='';r.start='';r.end='';r.hayade='';r.zangyo='';r.type=(r.isWeekend||r.holidayName)?'off':'work';});
   renderDays(); saveData();
 }
 
@@ -1823,6 +2082,7 @@ buildMonthSelect();
 loadGlobal();
 loadMonthData(document.getElementById('yearmonth').value);
 loadExpenses();
+applyGpsState();
 
 // トークンがあれば起動時に自動クラウド読み込み
 if (savedToken) {
