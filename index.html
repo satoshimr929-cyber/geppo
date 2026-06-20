@@ -447,6 +447,9 @@
 
 <div style="max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:10px;">
 
+  <!-- ① クラウド同期状態 -->
+  <div id="syncStatus" style="font-size:12px;font-weight:600;text-align:center;padding:2px 0;color:var(--text-muted);"></div>
+
   <!-- データ管理ボタン群 -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
     <button class="btn btn-secondary" onclick="clearAll()" style="font-size:13px;padding:10px 8px;">🗑️ リセット</button>
@@ -503,6 +506,15 @@ const HOLIDAYS = {
   '2027-09-23':'秋分の日','2027-10-11':'スポーツの日','2027-11-03':'文化の日',
   '2027-11-23':'勤労感謝の日','2027-11-24':'振替休日',
 };
+// 有休推奨日（出勤扱い・メモ先頭に「有給推奨」を自動付与）
+const RECOMMEND_TAG = '有給推奨';
+const RECOMMEND_LEAVE = {
+  '2026-07-18':1,'2026-08-12':1,'2026-08-13':1,'2026-08-14':1,'2026-09-19':1,
+  '2026-11-21':1,'2026-12-29':1,'2026-12-30':1,'2026-12-31':1,
+  '2027-01-04':1,'2027-02-20':1,'2027-03-20':1
+};
+// 出勤土曜日（土曜出勤の初期値として組み込み）
+const DEFAULT_WORK_SAT = ['2026-10-17','2026-12-26','2027-01-16','2027-06-26'];
 const YOUBI      = ['日','月','火','水','木','金','土'];
 const YOUBI_FULL = ['日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'];
 const TYPE_LABEL = {work:'出勤','holi-work':'休日出勤',off:'休み',paid:'有休',daikyu:'代休',absent:'欠勤'};
@@ -513,7 +525,7 @@ const GLOBAL_KEY    = 'sakugyo_global_v6';
 const monthKey = ym => `sakugyo_month_${ym}`;
 
 let rows = [], siteList = [], pyodide = null;
-let workSaturdays = []; // 事前登録した土曜出勤日（ISO 'YYYY-MM-DD'）
+let workSaturdays = DEFAULT_WORK_SAT.slice(); // 事前登録した土曜出勤日（ISO 'YYYY-MM-DD'）＋初期値
 
 // ── Pyodide ──
 function setStatus(msg, ready) {
@@ -973,12 +985,22 @@ function buildDays() {
     const _hname=HOLIDAYS[_iso]||null;
     const _isHoli=!!_hname;
     const _isWorkSat=(dw===6)&&workSaturdays.includes(_iso); // 事前登録した出勤土曜
-    const _off=(isWE||_isHoli)&&!_isWorkSat;
+    const _isRecLeave=!!RECOMMEND_LEAVE[_iso]; // 有休推奨日（出勤扱い）
+    const _off=(isWE||_isHoli)&&!_isWorkSat&&!_isRecLeave;
     rows.push({date:new Date(d),youbi:YOUBI[dw],isWeekend:isWE,holidayName:_hname,
       site:'',task:'',start:_off?'':DEFAULT_START,end:_off?'':DEFAULT_END,
-      hayade:'',zangyo:'',memo:'',type:_off?'off':'work'});
+      hayade:'',zangyo:'',memo:_isRecLeave?RECOMMEND_TAG:'',type:_off?'off':'work'});
   }
   renderDays();
+}
+// 有休推奨日のメモ先頭に「有給推奨」を付与（未付与のみ・既存メモ/種別は保持）
+function applyRecommendLeave(){
+  rows.forEach(r=>{
+    if(!RECOMMEND_LEAVE[dateToISO(r.date)])return;
+    const m=r.memo||'';
+    if(m.startsWith(RECOMMEND_TAG))return;
+    r.memo=m?(RECOMMEND_TAG+'\n'+m):RECOMMEND_TAG;
+  });
 }
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function autoGrowMemo(el){if(!el)return;el.style.height='auto';el.style.height=(el.scrollHeight)+'px';}
@@ -1807,6 +1829,7 @@ function clearAll(){
 let _gistSaveTimer = null;
 function saveData(){
   try{localStorage.setItem(GLOBAL_KEY,JSON.stringify({name:document.getElementById('name').value,siteList,workerList,yearmonth:document.getElementById('yearmonth').value,expenseCompany:(document.getElementById('expenseCompany')||{}).value||'',workSaturdays}));}catch(e){}
+  markUnsynced();
   const ym=document.getElementById('yearmonth').value; if(!ym)return;
   const defS=DEFAULT_START,defE=DEFAULT_END;
   try{localStorage.setItem(monthKey(ym),JSON.stringify({
@@ -1827,7 +1850,7 @@ function saveData(){
 function loadGlobal(){
   try{
     const s=JSON.parse(localStorage.getItem(GLOBAL_KEY)||'null'); if(!s)return;
-    workSaturdays=Array.isArray(s.workSaturdays)?s.workSaturdays.slice():[];
+    workSaturdays=Array.from(new Set([...DEFAULT_WORK_SAT, ...(Array.isArray(s.workSaturdays)?s.workSaturdays:[])])).sort();
     renderWorkSatList();
     if(s.name)document.getElementById('name').value=s.name;
     if(s.expenseCompany!==undefined){const ec=document.getElementById('expenseCompany');if(ec)ec.value=s.expenseCompany;}
@@ -1903,11 +1926,31 @@ function loadMonthData(ym){
       buildDays(); const defS=DEFAULT_START,defE=DEFAULT_END;
       s.rows.forEach((sv,i)=>{if(!rows[i])return;Object.assign(rows[i],sv);
         if(rows[i].type==='work'||rows[i].type==='holi-work'){if(!rows[i].start)rows[i].start=defS;if(!rows[i].end)rows[i].end=defE;}});
+      applyRecommendLeave();
       renderDays();
     }else buildDays();
   }catch(e){buildDays();}
 }
 function showSaveIndicator(){const el=document.getElementById('saveIndicator');el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',1500);}
+// ── ① クラウド同期状態の表示 ──
+function syncRelative(ts){
+  const diff=Date.now()-ts;
+  if(diff<60000)return'たった今';
+  const mi=Math.floor(diff/60000); if(mi<60)return mi+'分前';
+  const h=Math.floor(mi/60); if(h<24)return h+'時間前';
+  return Math.floor(h/24)+'日前';
+}
+function renderSyncStatus(){
+  const el=document.getElementById('syncStatus'); if(!el)return;
+  const dirty=localStorage.getItem('gist_dirty')==='1';
+  const last=parseInt(localStorage.getItem('gist_last_sync')||'0',10);
+  if(dirty){ el.textContent='⚠️ 未同期の変更あり'; el.style.color='#fbbf24'; }
+  else if(last){ el.textContent='☁️ 同期: '+syncRelative(last); el.style.color='var(--text-muted)'; }
+  else { el.textContent='☁️ 未同期'; el.style.color='var(--text-muted)'; }
+}
+function markUnsynced(){try{localStorage.setItem('gist_dirty','1');}catch(e){}renderSyncStatus();}
+function markSynced(){try{localStorage.setItem('gist_last_sync',String(Date.now()));localStorage.removeItem('gist_dirty');}catch(e){}renderSyncStatus();}
+setInterval(renderSyncStatus,60000);
 ['prevDaikyu'].forEach(id=>{document.getElementById(id).addEventListener('input',saveData);document.getElementById(id).addEventListener('change',saveData);});
 // name inputはonNameInput()で処理（inline oninput/onchange）
 document.getElementById('yearmonth').addEventListener('change',()=>{loadMonthData(document.getElementById('yearmonth').value);saveData();});
@@ -2060,6 +2103,7 @@ async function gistSave(silent=false) {
       localStorage.setItem('gist_id', data.id);
     }
     if(!silent) showToast('✅ クラウドに保存しました');
+    markSynced();
   } catch(e) {
     showToast('❌ ' + e.message);
     console.error(e);
@@ -2102,6 +2146,7 @@ async function gistLoad(silent=false) {
     loadGlobal();
     loadMonthData(document.getElementById('yearmonth').value);
     loadExpenses();
+    markSynced();
     if(!silent) showToast('✅ クラウドから読み込みました'); else showToast('☁️ クラウドから読み込みました');
   } catch(e) {
     showToast('❌ ' + e.message);
@@ -2199,6 +2244,7 @@ loadExpenses();
 applyGpsState();
 applyUnsetToggleUI();
 renderWorkSatList();
+renderSyncStatus();
 // トークンがあれば起動時に自動クラウド読み込み
 if (savedToken) {
   setTimeout(async () => {
