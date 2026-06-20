@@ -993,13 +993,18 @@ function buildDays() {
   }
   renderDays();
 }
-// 有休推奨日のメモ先頭に「有給推奨」を付与（未付与のみ・既存メモ/種別は保持）
+// 有休推奨日：出勤扱いに補正＋メモ先頭に「有給推奨」を付与
+// （休み(off)のみ出勤へ。有休/代休/欠勤など明示種別は保持。メモは未付与時のみ追記）
 function applyRecommendLeave(){
   rows.forEach(r=>{
     if(!RECOMMEND_LEAVE[dateToISO(r.date)])return;
+    if(r.type==='off'){
+      r.type='work';
+      if(!r.start)r.start=DEFAULT_START;
+      if(!r.end)r.end=DEFAULT_END;
+    }
     const m=r.memo||'';
-    if(m.startsWith(RECOMMEND_TAG))return;
-    r.memo=m?(RECOMMEND_TAG+'\n'+m):RECOMMEND_TAG;
+    if(!m.startsWith(RECOMMEND_TAG)) r.memo=m?(RECOMMEND_TAG+'\n'+m):RECOMMEND_TAG;
   });
 }
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
