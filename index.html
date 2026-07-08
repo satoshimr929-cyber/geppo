@@ -1921,9 +1921,12 @@ function saveData(){
 function loadGlobal(){
   try{
     const s=JSON.parse(localStorage.getItem(GLOBAL_KEY)||'null'); if(!s)return;
-    workSaturdays=Array.from(new Set([...DEFAULT_WORK_SAT, ...(Array.isArray(s.workSaturdays)?s.workSaturdays:[])])).sort();
+    // 事前登録は保存値をそのまま採用する（埋め込み初期値の再unionはしない）。
+    // 以前は毎回 DEFAULT_WORK_SAT / RECOMMEND_LEAVE をunionしていたため、初期値の日を削除しても
+    // 起動し直すと復活していた。保存キーが無い場合（初回・旧データ）のみ埋め込み初期値をseedする。
+    workSaturdays=Array.isArray(s.workSaturdays)?s.workSaturdays.slice().sort():DEFAULT_WORK_SAT.slice().sort();
     renderWorkSatList();
-    recommendLeaveDays=Array.from(new Set([...Object.keys(RECOMMEND_LEAVE), ...(Array.isArray(s.recommendLeaveDays)?s.recommendLeaveDays:[])])).sort();
+    recommendLeaveDays=Array.isArray(s.recommendLeaveDays)?s.recommendLeaveDays.slice().sort():Object.keys(RECOMMEND_LEAVE).slice().sort();
     renderRecLeaveList();
     if(s.name)document.getElementById('name').value=s.name;
     if(s.expenseCompany!==undefined){const ec=document.getElementById('expenseCompany');if(ec)ec.value=s.expenseCompany;}
