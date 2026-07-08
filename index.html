@@ -214,22 +214,6 @@
     style="width:100%;margin-top:12px;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box;">📍 現在地から今日の現場を取得</button>
 </div>
 
-<details id="workSatPanel" style="max-width:700px;margin:0 auto 20px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;">
-  <summary style="list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;user-select:none;">
-    🗓 土曜出勤の事前登録
-    <span style="font-size:11px;font-weight:500;color:var(--text-muted);">（指定した土曜を出勤に）</span>
-  </summary>
-  <div style="padding:0 14px 14px;">
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input type="date" id="workSatInput"
-        style="flex:1 1 0;min-width:0;width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;">
-      <button onclick="addWorkSaturday()"
-        style="flex:0 0 64px;width:64px;white-space:nowrap;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;">追加</button>
-    </div>
-    <div id="workSatList" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;"></div>
-  </div>
-</details>
-
 <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
   <span>日別入力（クリックで展開）</span>
   <label style="display:flex;align-items:center;gap:7px;cursor:pointer;text-transform:none;letter-spacing:normal;font-weight:500;">
@@ -240,6 +224,36 @@
   </label>
 </div>
 <div class="days-container" id="daysContainer"></div>
+
+<details id="workSatPanel" style="max-width:700px;margin:0 auto 20px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;">
+  <summary style="list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;user-select:none;">
+    🗓 出勤日の事前登録
+    <span style="font-size:11px;font-weight:500;color:var(--text-muted);">（土曜出勤・有休推奨日）</span>
+  </summary>
+  <div style="padding:0 14px 14px;">
+    <!-- 土曜出勤 -->
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin:2px 0 8px;">土曜出勤（指定した土曜を出勤に）</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="date" id="workSatInput"
+        style="flex:1 1 0;min-width:0;width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;">
+      <button onclick="addWorkSaturday()"
+        style="flex:0 0 64px;width:64px;white-space:nowrap;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;">追加</button>
+    </div>
+    <div id="workSatList" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;"></div>
+
+    <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
+
+    <!-- 有休推奨日 -->
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin:2px 0 8px;">有休推奨日（出勤扱い・メモに「有給推奨」）</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="date" id="recLeaveInput"
+        style="flex:1 1 0;min-width:0;width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;">
+      <button onclick="addRecLeave()"
+        style="flex:0 0 64px;width:64px;white-space:nowrap;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;">追加</button>
+    </div>
+    <div id="recLeaveList" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;"></div>
+  </div>
+</details>
 
 <div class="section-title">集計</div>
 <div class="summary-box">
@@ -526,6 +540,9 @@ const monthKey = ym => `sakugyo_month_${ym}`;
 
 let rows = [], siteList = [], pyodide = null;
 let workSaturdays = DEFAULT_WORK_SAT.slice(); // 事前登録した土曜出勤日（ISO 'YYYY-MM-DD'）＋初期値
+let recommendLeaveDays = Object.keys(RECOMMEND_LEAVE).slice().sort(); // 事前登録した有休推奨日（ISO）＋埋め込み初期値
+// 有休推奨日か判定（埋め込み初期値＋ユーザー登録分。recommendLeaveDaysに初期値もunion済み）
+function isRecLeave(iso){ return recommendLeaveDays.includes(iso); }
 
 // ── Pyodide ──
 function setStatus(msg, ready) {
@@ -975,6 +992,50 @@ function removeWorkSaturday(iso){
   saveData(); renderWorkSatList(); reflectWorkSat(iso,false);
   showToast('登録を解除しました');
 }
+// ── 有休推奨日の事前登録（出勤扱い・メモに「有給推奨」） ──
+function renderRecLeaveList(){
+  const el=document.getElementById('recLeaveList'); if(!el) return;
+  if(!recommendLeaveDays.length){ el.innerHTML='<span style="font-size:12px;color:var(--text-muted);">登録なし</span>'; return; }
+  el.innerHTML=recommendLeaveDays.slice().sort().map(iso=>{
+    const d=new Date(iso+'T00:00:00');
+    const label=`${d.getMonth()+1}/${d.getDate()}(${YOUBI[d.getDay()]})`;
+    return `<span class="worksat-chip">${label}<button onclick="removeRecLeave('${iso}')" aria-label="解除">×</button></span>`;
+  }).join('');
+}
+// 表示中の月に該当する場合のみ即反映（入力済みの行は上書きしない）
+function reflectRecLeave(iso, added){
+  const idx=rows.findIndex(r=>dateToISO(r.date)===iso);
+  if(idx<0){ return; }
+  const r=rows[idx];
+  if(!r.site && !r.task){
+    if(added){
+      if(r.type==='off'){ r.type='work'; if(!r.start)r.start=DEFAULT_START; if(!r.end)r.end=DEFAULT_END; }
+      const m=r.memo||'';
+      if(!m.startsWith(RECOMMEND_TAG)) r.memo=m?(RECOMMEND_TAG+'\n'+m):RECOMMEND_TAG;
+    }else{
+      let m=r.memo||'';
+      if(m.startsWith(RECOMMEND_TAG)){ m=m.slice(RECOMMEND_TAG.length).replace(/^\n/,''); r.memo=m; }
+      if(r.type==='work' && !r.memo && (r.isWeekend||r.holidayName)) r.type='off';
+    }
+    saveData();
+  }
+  renderDays();
+}
+function addRecLeave(){
+  const inp=document.getElementById('recLeaveInput'); const v=inp.value;
+  if(!v){ showToast('⚠️ 日付を選んでください'); return; }
+  if(recommendLeaveDays.includes(v)){ showToast('登録済みです'); inp.value=''; return; }
+  recommendLeaveDays.push(v); recommendLeaveDays.sort();
+  saveData(); renderRecLeaveList(); reflectRecLeave(v,true);
+  inp.value='';
+  const d=new Date(v+'T00:00:00');
+  showToast(`🏖 ${d.getMonth()+1}/${d.getDate()}(${YOUBI[d.getDay()]}) を有休推奨に登録`);
+}
+function removeRecLeave(iso){
+  recommendLeaveDays=recommendLeaveDays.filter(x=>x!==iso);
+  saveData(); renderRecLeaveList(); reflectRecLeave(iso,false);
+  showToast('登録を解除しました');
+}
 function buildDays() {
   const ym=document.getElementById('yearmonth').value; if(!ym) return;
   const [y,m]=ym.split('-').map(Number); rows=[];
@@ -985,7 +1046,7 @@ function buildDays() {
     const _hname=HOLIDAYS[_iso]||null;
     const _isHoli=!!_hname;
     const _isWorkSat=(dw===6)&&workSaturdays.includes(_iso); // 事前登録した出勤土曜
-    const _isRecLeave=!!RECOMMEND_LEAVE[_iso]; // 有休推奨日（出勤扱い）
+    const _isRecLeave=isRecLeave(_iso); // 有休推奨日（出勤扱い）
     const _off=(isWE||_isHoli)&&!_isWorkSat&&!_isRecLeave;
     rows.push({date:new Date(d),youbi:YOUBI[dw],isWeekend:isWE,holidayName:_hname,
       site:'',task:'',start:_off?'':DEFAULT_START,end:_off?'':DEFAULT_END,
@@ -997,7 +1058,7 @@ function buildDays() {
 // （休み(off)のみ出勤へ。有休/代休/欠勤など明示種別は保持。メモは未付与時のみ追記）
 function applyRecommendLeave(){
   rows.forEach(r=>{
-    if(!RECOMMEND_LEAVE[dateToISO(r.date)])return;
+    if(!isRecLeave(dateToISO(r.date)))return;
     if(r.type==='off'){
       r.type='work';
       if(!r.start)r.start=DEFAULT_START;
@@ -1827,15 +1888,18 @@ function renderKanriSites(){
 function clearAll(){
   if(!confirm('この月の入力内容をリセットしますか？'))return;
   rows.forEach(r=>{r.site='';r.task='';r.start='';r.end='';r.hayade='';r.zangyo='';r.memo='';
-    const _isWorkSat=(r.date.getDay()===6)&&workSaturdays.includes(dateToISO(r.date));
-    r.type=((r.isWeekend||r.holidayName)&&!_isWorkSat)?'off':'work';});
+    const _iso=dateToISO(r.date);
+    const _isWorkSat=(r.date.getDay()===6)&&workSaturdays.includes(_iso);
+    const _isRec=isRecLeave(_iso);
+    r.type=((r.isWeekend||r.holidayName)&&!_isWorkSat&&!_isRec)?'off':'work';
+    if(_isRec){ if(!r.start)r.start=DEFAULT_START; if(!r.end)r.end=DEFAULT_END; r.memo=RECOMMEND_TAG; }});
   renderDays(); saveData();
 }
 
 // ── 保存 ──
 let _gistSaveTimer = null;
 function saveData(){
-  try{localStorage.setItem(GLOBAL_KEY,JSON.stringify({name:document.getElementById('name').value,siteList,workerList,yearmonth:document.getElementById('yearmonth').value,expenseCompany:(document.getElementById('expenseCompany')||{}).value||'',workSaturdays}));}catch(e){}
+  try{localStorage.setItem(GLOBAL_KEY,JSON.stringify({name:document.getElementById('name').value,siteList,workerList,yearmonth:document.getElementById('yearmonth').value,expenseCompany:(document.getElementById('expenseCompany')||{}).value||'',workSaturdays,recommendLeaveDays}));}catch(e){}
   markUnsynced();
   const ym=document.getElementById('yearmonth').value; if(!ym)return;
   const defS=DEFAULT_START,defE=DEFAULT_END;
@@ -1859,6 +1923,8 @@ function loadGlobal(){
     const s=JSON.parse(localStorage.getItem(GLOBAL_KEY)||'null'); if(!s)return;
     workSaturdays=Array.from(new Set([...DEFAULT_WORK_SAT, ...(Array.isArray(s.workSaturdays)?s.workSaturdays:[])])).sort();
     renderWorkSatList();
+    recommendLeaveDays=Array.from(new Set([...Object.keys(RECOMMEND_LEAVE), ...(Array.isArray(s.recommendLeaveDays)?s.recommendLeaveDays:[])])).sort();
+    renderRecLeaveList();
     if(s.name)document.getElementById('name').value=s.name;
     if(s.expenseCompany!==undefined){const ec=document.getElementById('expenseCompany');if(ec)ec.value=s.expenseCompany;}
     if(s.siteList){siteList=s.siteList.map(x=>typeof x==='string'?{name:x,client:''}:x);renderSiteTags();updateDatalist();}
@@ -2262,6 +2328,7 @@ loadExpenses();
 applyGpsState();
 applyUnsetToggleUI();
 renderWorkSatList();
+renderRecLeaveList();
 renderSyncStatus();
 // トークンがあれば起動時に自動クラウド読み込み
 if (savedToken) {
