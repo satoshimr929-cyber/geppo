@@ -120,7 +120,7 @@
   .qb-off.on{border-color:#888;background:#ffffff10;color:#aaa;}
   body.light .qb-off.on,body.sepia .qb-off.on,body.navy .qb-off.on{background:#00000010;color:#777;}
   .qb-paid.on{border-color:var(--accent2);background:#00d4aa22;color:var(--accent2);}
-  #workSatPanel summary::-webkit-details-marker{display:none;}
+  details summary::-webkit-details-marker{display:none;}
   .worksat-chip{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1.5px solid var(--border);border-radius:16px;padding:4px 6px 4px 11px;font-size:13px;color:var(--text);}
   .worksat-chip button{border:none;background:transparent;color:var(--text-muted);font-size:16px;line-height:1;cursor:pointer;padding:0 3px;}
   .worksat-chip button:hover{color:var(--warn);}
@@ -291,39 +291,43 @@
   </div>
 </div>
 
-<div class="section-title">コメント・目標</div>
-<div style="max-width:700px;margin:0 auto 20px;display:flex;flex-direction:column;gap:10px;">
-  <div class="field">
-    <label>本人コメント</label>
-    <textarea id="honninComment" rows="3" placeholder="本人コメントを入力"
-      style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;resize:vertical;"
-      oninput="saveData()" onchange="saveData()"></textarea>
+<details id="commentGoalPanel" style="max-width:700px;margin:0 auto 20px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;">
+  <summary style="list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;user-select:none;">
+    📝 コメント・目標
+  </summary>
+  <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;">
+    <div class="field">
+      <label>本人コメント</label>
+      <textarea id="honninComment" rows="3" placeholder="本人コメントを入力"
+        style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;resize:vertical;"
+        oninput="saveData()" onchange="saveData()"></textarea>
+    </div>
+    <div class="field">
+      <label>要望事項</label>
+      <textarea id="yoboJiko" rows="3" placeholder="要望事項を入力"
+        style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;resize:vertical;"
+        oninput="saveData()" onchange="saveData()"></textarea>
+    </div>
+    <div class="field">
+      <label>１年間の目標（仕事）</label>
+      <input type="text" id="goalShigoto" placeholder="仕事の目標"
+        style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;"
+        oninput="saveData()" onchange="saveData()">
+    </div>
+    <div class="field">
+      <label>１年間の目標（人格）</label>
+      <input type="text" id="goalJinkaku" placeholder="人格の目標"
+        style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;"
+        oninput="saveData()" onchange="saveData()">
+    </div>
+    <div class="field">
+      <label>１年間の目標（その他）</label>
+      <input type="text" id="goalSonota" placeholder="その他の目標"
+        style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;"
+        oninput="saveData()" onchange="saveData()">
+    </div>
   </div>
-  <div class="field">
-    <label>要望事項</label>
-    <textarea id="yoboJiko" rows="3" placeholder="要望事項を入力"
-      style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;resize:vertical;"
-      oninput="saveData()" onchange="saveData()"></textarea>
-  </div>
-  <div class="field">
-    <label>１年間の目標（仕事）</label>
-    <input type="text" id="goalShigoto" placeholder="仕事の目標"
-      style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;"
-      oninput="saveData()" onchange="saveData()">
-  </div>
-  <div class="field">
-    <label>１年間の目標（人格）</label>
-    <input type="text" id="goalJinkaku" placeholder="人格の目標"
-      style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;"
-      oninput="saveData()" onchange="saveData()">
-  </div>
-  <div class="field">
-    <label>１年間の目標（その他）</label>
-    <input type="text" id="goalSonota" placeholder="その他の目標"
-      style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:10px 14px;outline:none;"
-      oninput="saveData()" onchange="saveData()">
-  </div>
-</div>
+</details>
 
 <div class="section-title">現場管理日程表</div>
 <div style="max-width:700px;margin:0 auto 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;">
