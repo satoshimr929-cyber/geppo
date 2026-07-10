@@ -325,22 +325,22 @@
   </div>
 </div>
 
-<div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
-  <span>👷 作業者登録（全月共通）</span>
-  <span id="workerCount" style="font-size:12px;color:var(--accent2);font-weight:700;letter-spacing:.05em;"></span>
-</div>
-<div style="max-width:700px;margin:0 auto 20px;background:var(--surface);border:1.5px solid var(--accent);border-radius:12px;padding:14px 16px;">
-  <div id="workerTagList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;min-height:28px;"></div>
-  <div style="display:flex;gap:8px;width:100%;box-sizing:border-box;">
-    <input type="text" id="workerInput" placeholder="作業者名を入力してEnterまたは追加"
-      style="flex:1 1 0;min-width:0;width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();addWorker();}">
-    <button class="btn-accent" onclick="addWorker()" style="flex:0 0 64px;width:64px;white-space:nowrap;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;">追加</button>
-  </div>
-</div>
-
 <div class="section-title">現場管理日程表</div>
 <div style="max-width:700px;margin:0 auto 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;">
+  <div class="field" style="margin-bottom:14px;">
+    <label style="display:flex;align-items:center;justify-content:space-between;">
+      <span>👷 作業者登録（全月共通）</span>
+      <span id="workerCount" style="font-size:12px;color:var(--accent2);font-weight:700;letter-spacing:.05em;text-transform:none;"></span>
+    </label>
+    <div id="workerTagList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;min-height:28px;"></div>
+    <div style="display:flex;gap:8px;width:100%;box-sizing:border-box;">
+      <input type="text" id="workerInput" placeholder="作業者名を入力してEnterまたは追加"
+        style="flex:1 1 0;min-width:0;width:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;box-sizing:border-box;"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();addWorker();}">
+      <button class="btn-accent" onclick="addWorker()" style="flex:0 0 64px;width:64px;white-space:nowrap;padding:8px 0;border-radius:8px;border:none;background:var(--accent);color:white;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-sizing:border-box;">追加</button>
+    </div>
+  </div>
+  <div style="border-top:1px dashed var(--border);margin:0 0 14px;"></div>
   <div class="field" style="margin-bottom:12px;">
     <label>管理現場</label>
     <div id="kanriSiteList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
