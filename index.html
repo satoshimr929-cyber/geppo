@@ -142,8 +142,8 @@
   .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
   .btn-secondary{background:var(--surface2);color:var(--text);border:1.5px solid var(--border);}
   .btn-secondary:hover{border-color:var(--accent);}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--accent2);color:#0f1117;font-weight:700;font-size:13px;padding:12px 24px;border-radius:30px;z-index:999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
-  .toast.show{transform:translateX(-50%) translateY(0);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);opacity:0;background:var(--accent2);color:#0f1117;font-weight:700;font-size:13px;padding:12px 24px;border-radius:30px;z-index:999;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;pointer-events:none;max-width:calc(100% - 32px);text-align:center;}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
   .loading-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s;z-index:1000;}
   @media(max-width:480px){.meta-section,.meta-extra{grid-template-columns:1fr;}.day-body-grid{grid-template-columns:1fr;}}
 
@@ -272,25 +272,30 @@
   </div>
 </div>
 
-<div class="section-title">その他入力</div>
-<div class="meta-extra">
-  <div class="field"><label>前月迄の代休残日数</label>
-    <input type="number" id="prevDaikyu" min="0" max="99" value="0"></div>
-  <div class="field" style="grid-column:1/-1">
-    <label>担当現場（複数可）</label>
-    <div id="tantoSiteList" style="display:flex;flex-direction:column;gap:6px;">
-      <select class="tanto-input" onchange="if(this.value==='__manual__'){this.style.display='none';this.nextElementSibling.style.display='block';this.nextElementSibling.focus();}else{saveData();}"
-        style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;">
-        <option value="">-- 現場を選択 --</option>
-        <option value="__manual__">✏️ 直接入力...</option>
-      </select>
-      <input type="text" placeholder="現場名を入力"
-        style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:8px 12px;outline:none;display:none;"
-        oninput="saveData()" onchange="saveData()">
+<details id="etcInputPanel">
+  <summary class="section-title" style="list-style:none;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;">
+    <span>その他入力</span>
+    <span class="chevron">▶</span>
+  </summary>
+  <div class="meta-extra">
+    <div class="field"><label>前月迄の代休残日数</label>
+      <input type="number" id="prevDaikyu" min="0" max="99" value="0"></div>
+    <div class="field" style="grid-column:1/-1">
+      <label>担当現場（複数可）</label>
+      <div id="tantoSiteList" style="display:flex;flex-direction:column;gap:6px;">
+        <select class="tanto-input" onchange="if(this.value==='__manual__'){this.style.display='none';this.nextElementSibling.style.display='block';this.nextElementSibling.focus();}else{saveData();}"
+          style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;padding:8px 12px;outline:none;">
+          <option value="">-- 現場を選択 --</option>
+          <option value="__manual__">✏️ 直接入力...</option>
+        </select>
+        <input type="text" placeholder="現場名を入力"
+          style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:8px 12px;outline:none;display:none;"
+          oninput="saveData()" onchange="saveData()">
+      </div>
+      <button onclick="addTantoRow()" style="margin-top:8px;padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text-muted);font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;">＋ 現場を追加</button>
     </div>
-    <button onclick="addTantoRow()" style="margin-top:8px;padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text-muted);font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;">＋ 現場を追加</button>
   </div>
-</div>
+</details>
 
 <details id="commentGoalPanel">
   <summary class="section-title" style="list-style:none;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;">
