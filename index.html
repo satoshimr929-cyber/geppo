@@ -121,6 +121,7 @@
   body.light .qb-off.on,body.sepia .qb-off.on,body.navy .qb-off.on{background:#00000010;color:#777;}
   .qb-paid.on{border-color:var(--accent2);background:#00d4aa22;color:var(--accent2);}
   details summary::-webkit-details-marker{display:none;}
+  details[open]>summary .chevron{transform:rotate(90deg);}
   .worksat-chip{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1.5px solid var(--border);border-radius:16px;padding:4px 6px 4px 11px;font-size:13px;color:var(--text);}
   .worksat-chip button{border:none;background:transparent;color:var(--text-muted);font-size:16px;line-height:1;cursor:pointer;padding:0 3px;}
   .worksat-chip button:hover{color:var(--warn);}
@@ -291,11 +292,12 @@
   </div>
 </div>
 
-<details id="commentGoalPanel" style="max-width:700px;margin:0 auto 20px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;">
-  <summary style="list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;user-select:none;">
-    📝 コメント・目標
+<details id="commentGoalPanel">
+  <summary class="section-title" style="list-style:none;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;">
+    <span>コメント・目標</span>
+    <span class="chevron">▶</span>
   </summary>
-  <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;">
+  <div style="max-width:700px;margin:0 auto 20px;display:flex;flex-direction:column;gap:10px;">
     <div class="field">
       <label>本人コメント</label>
       <textarea id="honninComment" rows="3" placeholder="本人コメントを入力"
