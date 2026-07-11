@@ -1694,6 +1694,15 @@ function toggleKanriAutoOpen(si,idx){
   ks._openDays[idx]=!ks._openDays[idx];
   renderKanriSites();
 }
+// 現場管理日程表から、日別入力由来の日(auto)の始業/終業時間を変更（rows本体を更新）
+function updateKanriAutoTime(si,idx,key,val){
+  const r=rows[idx]; if(!r)return;
+  r[key]=val;
+  if(!r.start)r.start=DEFAULT_START;
+  if(!r.end)r.end=DEFAULT_END;
+  saveData();
+  renderDays();
+}
 function updateKanriTanto(si,val){
   if(kanriSites[si]){kanriSites[si].tanto=val;saveData();}
 }
@@ -1849,7 +1858,18 @@ function renderKanriSites(){
                 <span style="font-size:11px;color:var(--text-muted);">${r.start||''}〜${r.end||''}</span>
                 <span style="color:var(--text-muted);font-size:12px;transform:rotate(${dOpen?90:0}deg);transition:transform .2s;">▶</span>
               </div>
-              <div style="display:${dOpen?'flex':'none'};flex-wrap:wrap;gap:6px;padding:0 10px 10px;border-top:1px solid var(--border);padding-top:${dOpen?'8px':'0'};">${chips}</div>
+              <div style="display:${dOpen?'flex':'none'};flex-direction:column;gap:8px;padding:0 10px 10px;border-top:1px solid var(--border);padding-top:${dOpen?'8px':'0'};">
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <input type="time" value="${r.start||DEFAULT_START}"
+                    style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:6px 6px;outline:none;"
+                    onchange="updateKanriAutoTime(${si},${idx},'start',this.value)">
+                  <span style="color:var(--text-muted);font-size:12px;">〜</span>
+                  <input type="time" value="${r.end||DEFAULT_END}"
+                    style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:6px 6px;outline:none;"
+                    onchange="updateKanriAutoTime(${si},${idx},'end',this.value)">
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips}</div>
+              </div>
             </div>`;
         }else{
           const ei=ent.ei, ed=ent.ed;
