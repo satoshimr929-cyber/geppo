@@ -1694,14 +1694,18 @@ function toggleKanriAutoOpen(si,idx){
   ks._openDays[idx]=!ks._openDays[idx];
   renderKanriSites();
 }
-// 現場管理日程表から、日別入力由来の日(auto)の始業/終業時間を変更（rows本体を更新）
+// 現場管理日程表から、日別入力由来の日(auto)の始業/終業時間を変更。
+// rows本体（日別入力・作業月報Excelの元データ）は変更せず、この現場のkanriSites側にだけ
+// 上書き時間を保持する（現場管理日程表Excelにのみ反映するため）
 function updateKanriAutoTime(si,idx,key,val){
-  const r=rows[idx]; if(!r)return;
-  r[key]=val;
-  if(!r.start)r.start=DEFAULT_START;
-  if(!r.end)r.end=DEFAULT_END;
+  const ks=kanriSites[si]; if(!ks)return;
+  const r=rows[idx]||{};
+  ks.autoTimes=ks.autoTimes||{};
+  const cur=ks.autoTimes[idx]||{start:r.start||DEFAULT_START,end:r.end||DEFAULT_END};
+  cur[key]=val;
+  ks.autoTimes[idx]=cur;
   saveData();
-  renderDays();
+  renderKanriSites();
 }
 function updateKanriTanto(si,val){
   if(kanriSites[si]){kanriSites[si].tanto=val;saveData();}
@@ -1846,6 +1850,8 @@ function renderKanriSites(){
           const sel=getSelectedWorkers(si,idx);
           const dOpen=!!(ks._openDays||{})[idx];
           const r=rows[idx]||{};
+          const ov=(ks.autoTimes||{})[idx];
+          const dispStart=ov?.start||r.start||DEFAULT_START, dispEnd=ov?.end||r.end||DEFAULT_END;
           const summary=sel.length?sel.join('・'):'<span style="font-style:italic;">未入力</span>';
           const chips=workerList.length
             ? workerList.map(w=>chipHtml(w,sel.includes(w),`toggleKanriWorker(${si},${idx},${JSON.stringify(w).replace(/"/g,'&quot;')})`)).join('')
@@ -1855,16 +1861,17 @@ function renderKanriSites(){
               <div onclick="toggleKanriAutoOpen(${si},${idx})" style="display:flex;gap:8px;align-items:center;padding:8px 10px;cursor:pointer;user-select:none;">
                 <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text-muted);min-width:58px;">${dateStr}(${youbi})</span>
                 <span style="flex:1;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${summary}</span>
-                <span style="font-size:11px;color:var(--text-muted);">${r.start||''}〜${r.end||''}</span>
+                <span style="font-size:11px;color:${ov?'var(--accent)':'var(--text-muted)'};">${dispStart}〜${dispEnd}</span>
                 <span style="color:var(--text-muted);font-size:12px;transform:rotate(${dOpen?90:0}deg);transition:transform .2s;">▶</span>
               </div>
               <div style="display:${dOpen?'flex':'none'};flex-direction:column;gap:8px;padding:0 10px 10px;border-top:1px solid var(--border);padding-top:${dOpen?'8px':'0'};">
+                <div style="font-size:11px;color:var(--text-muted);">この時間は現場管理日程表Excelにのみ反映されます（日別入力・作業月報には影響しません）</div>
                 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                  <input type="time" value="${r.start||DEFAULT_START}"
+                  <input type="time" value="${dispStart}"
                     style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:6px 6px;outline:none;"
                     onchange="updateKanriAutoTime(${si},${idx},'start',this.value)">
                   <span style="color:var(--text-muted);font-size:12px;">〜</span>
-                  <input type="time" value="${r.end||DEFAULT_END}"
+                  <input type="time" value="${dispEnd}"
                     style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:6px 6px;outline:none;"
                     onchange="updateKanriAutoTime(${si},${idx},'end',this.value)">
                 </div>
@@ -2026,7 +2033,7 @@ function loadMonthData(ym){
     }else{
       kanriSites = [];
     }
-    kanriSites.forEach(ks=>{ks.workersByIdx=ks.workersByIdx||{};ks.extraDays=ks.extraDays||[];ks._bulk=ks._bulk||[];});
+    kanriSites.forEach(ks=>{ks.workersByIdx=ks.workersByIdx||{};ks.extraDays=ks.extraDays||[];ks._bulk=ks._bulk||[];ks.autoTimes=ks.autoTimes||{};});
     renderKanriSites();
     document.getElementById('honninComment').value = s?.honninComment || '';
     document.getElementById('yoboJiko').value      = s?.yoboJiko      || '';
@@ -2306,10 +2313,17 @@ async function exportKanriReport(){
     const ym = document.getElementById('yearmonth').value;
     const [y,m] = ym.split('-').map(Number);
     const name = document.getElementById('name').value;
+    // 現場管理日程表でだけ変更した時間(autoTimes)を、この出力用に複製したrowsへ反映。
+    // rows本体（日別入力・作業月報Excelの元データ）には一切書き戻さない
+    const rowsForKanri = rows.map((r,i)=>{
+      const ks = kanriSites.find(k=>k.site===r.site);
+      const ov = ks?.autoTimes?.[i];
+      return ov ? {...r, start: ov.start||r.start, end: ov.end||r.end} : r;
+    });
     const payload = JSON.stringify({
       name, yearmonth:ym,
       kanriSites: kanriSites.map(ks=>({site:ks.site,tanto:ks.tanto,workersByIdx:ks.workersByIdx,extraDays:ks.extraDays})),
-      rows:rows
+      rows:rowsForKanri
     });
     pyodide.globals.set('_kanri_payload', payload);
     pyodide.globals.set('_kanri_tmpl_b64', KANRI_TMPL_B64);
