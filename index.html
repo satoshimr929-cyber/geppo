@@ -1258,9 +1258,11 @@ function buildExpenseMonthSelect(){
   const sel=document.getElementById('expenseMonth'); if(!sel)return;
   const set=new Set(expenses.map(e=>(e.date||'').slice(0,7)).filter(Boolean));
   const now=new Date();
-  set.add(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
+  const nowYm=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  set.add(nowYm);
   const months=[...set].sort();
-  if(!_expenseMonth || !months.includes(_expenseMonth)) _expenseMonth=months[0];
+  // 未確定・不正な値のときは「今月」をデフォルトにする（monthsは昇順なのでmonths[0]は最古月になってしまう）
+  if(!_expenseMonth || !months.includes(_expenseMonth)) _expenseMonth=nowYm;
   sel.innerHTML=months.map(m=>{
     const [y,mo]=m.split('-');
     return `<option value="${m}" ${m===_expenseMonth?'selected':''}>${y}年${Number(mo)}月分（${Number(mo)}月末締め）</option>`;
