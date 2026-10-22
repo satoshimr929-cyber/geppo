@@ -2251,8 +2251,11 @@ async function gistLoad(silent=false) {
       const res = await fetch('https://api.github.com/gists?per_page=100', {
         headers: { 'Authorization': `token ${token}` }
       });
+      if (!res.ok) throw new Error('一覧取得失敗: ' + res.status);
       const list = await res.json();
-      const found = list.find(g => g.description === GIST_DESC && g.files[GIST_FILE]);
+      // filesを持たないGist(削除済み・フォーク元消失など)が一覧に混ざることがあるため、
+      // オプショナルチェーンで安全に判定する
+      const found = Array.isArray(list) ? list.find(g => g.description === GIST_DESC && g.files?.[GIST_FILE]) : null;
       if (!found) { showToast('❌ クラウドデータが見つかりません。先に保存してください。'); return; }
       gistId = found.id;
       localStorage.setItem('gist_id', gistId);
@@ -2262,8 +2265,9 @@ async function gistLoad(silent=false) {
     const res = await fetch(`https://api.github.com/gists/${gistId}`, {
       headers: { 'Authorization': `token ${token}` }
     });
+    if (!res.ok) throw new Error('取得失敗: ' + res.status);
     const gist = await res.json();
-    const content = gist.files[GIST_FILE]?.content;
+    const content = gist.files?.[GIST_FILE]?.content;
     if (!content) throw new Error('データが空です');
 
     const all = JSON.parse(content);
