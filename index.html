@@ -2175,6 +2175,13 @@ function getToken() {
   return document.getElementById('githubToken').value ||
          localStorage.getItem('gist_token') || '';
 }
+// GitHub APIのHTTPステータスを分かりやすい日本語に変換（401=トークン無効/期限切れが最多）
+function gistStatusMessage(prefix, status) {
+  if (status === 401) return 'GitHubトークンが無効か期限切れです。トークンを確認し直してください';
+  if (status === 403) return 'アクセスが拒否されました（レート制限、またはトークンの権限不足の可能性）';
+  if (status === 404) return '対象のクラウドデータが見つかりません';
+  return prefix + ': ' + status;
+}
 
 async function gistSaveConfirm() {
   if (confirm('☁️ クラウドに保存しますか？\n\nクラウド上の既存データは現在の入力内容で上書きされます。')) {
@@ -2214,7 +2221,7 @@ async function gistSave(silent=false) {
         headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ files: { [GIST_FILE]: { content } } })
       });
-      if (!res.ok) throw new Error('更新失敗: ' + res.status);
+      if (!res.ok) throw new Error(gistStatusMessage('更新失敗', res.status));
     } else {
       // 新規Gist作成
       const res = await fetch('https://api.github.com/gists', {
@@ -2226,7 +2233,7 @@ async function gistSave(silent=false) {
           files: { [GIST_FILE]: { content } }
         })
       });
-      if (!res.ok) throw new Error('作成失敗: ' + res.status);
+      if (!res.ok) throw new Error(gistStatusMessage('作成失敗', res.status));
       const data = await res.json();
       localStorage.setItem('gist_id', data.id);
     }
@@ -2251,7 +2258,7 @@ async function gistLoad(silent=false) {
       const res = await fetch('https://api.github.com/gists?per_page=100', {
         headers: { 'Authorization': `token ${token}` }
       });
-      if (!res.ok) throw new Error('一覧取得失敗: ' + res.status);
+      if (!res.ok) throw new Error(gistStatusMessage('一覧取得失敗', res.status));
       const list = await res.json();
       // filesを持たないGist(削除済み・フォーク元消失など)が一覧に混ざることがあるため、
       // オプショナルチェーンで安全に判定する
@@ -2265,7 +2272,7 @@ async function gistLoad(silent=false) {
     const res = await fetch(`https://api.github.com/gists/${gistId}`, {
       headers: { 'Authorization': `token ${token}` }
     });
-    if (!res.ok) throw new Error('取得失敗: ' + res.status);
+    if (!res.ok) throw new Error(gistStatusMessage('取得失敗', res.status));
     const gist = await res.json();
     const content = gist.files?.[GIST_FILE]?.content;
     if (!content) throw new Error('データが空です');
